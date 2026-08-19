@@ -544,6 +544,7 @@ export function AgentComposer(props: AgentComposerProps): React.JSX.Element {
     setPaletteDraftPrompt,
     setIsPaletteOpen,
     onDraftContentChange: handleDraftContentChange,
+    onLinkAction,
     showFileMentionPalette,
     mentionHighlightedKey,
     mentionSearchState,

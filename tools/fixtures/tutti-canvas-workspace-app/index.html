@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tutti Canvas</title>
+    <style>
+      .poc-status {
+        display: grid;
+        width: 100%;
+        height: 100%;
+        align-content: center;
+        justify-items: center;
+        gap: 12px;
+        padding: 32px;
+        background: #f7f5ef;
+        color: #475569;
+        font-size: 14px;
+        text-align: center;
+      }
+      .poc-status button {
+        padding: 7px 14px;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        background: #fff;
+        color: #1e293b;
+        cursor: pointer;
+      }
+      .poc-canvas-status {
+        position: fixed;
+        z-index: 1000;
+        top: 10px;
+        left: 50%;
+        display: grid;
+        max-width: min(76vw, 760px);
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 10px;
+        border: 1px solid rgb(148 163 184 / 35%);
+        border-radius: 999px;
+        background: rgb(255 255 255 / 90%);
+        box-shadow: 0 4px 16px rgb(15 23 42 / 10%);
+        color: #475569;
+        font-size: 11px;
+        pointer-events: none;
+        transform: translateX(-50%);
+        backdrop-filter: blur(10px);
+      }
+      .poc-canvas-name,
+      .poc-save-state {
+        font-weight: 650;
+        white-space: nowrap;
+      }
+      .poc-canvas-name {
+        color: #0f172a;
+      }
+      .poc-canvas-path {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .poc-save-state-saved {
+        color: #16803a;
+      }
+      .poc-save-state-saving,
+      .poc-save-state-unsaved {
+        color: #2563eb;
+      }
+      .poc-save-state-failed {
+        color: #dc2626;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

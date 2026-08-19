@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "tutti.app.manifest.v1",
+  "appId": "tutti-canvas",
+  "version": "0.0.1-poc",
+  "name": "Tutti Canvas",
+  "description": "A local feasibility bridge for the Tutti infinite canvas",
+  "runtime": {
+    "bootstrap": "bootstrap.sh",
+    "healthcheckPath": "/healthz",
+    "profile": "node-static"
+  },
+  "cli": {
+    "manifest": "tutti.cli.json"
+  },
+  "window": {
+    "minWidth": 520,
+    "minHeight": 400
+  },
+  "launch": {
+    "mode": "workspace-open"
+  },
+  "localizationInfo": {
+    "defaultLocale": "en",
+    "additionalLocales": [
+      {
+        "locale": "zh-CN",
+        "file": "locales/zh-CN/manifest.json"
+      }
+    ]
+  },
+  "author": {
+    "name": "Tutti Canvas POC"
+  },
+  "tags": ["canvas", "tldraw", "prototype"]
+}

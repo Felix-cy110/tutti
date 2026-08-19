@@ -1,0 +1,134 @@
+{
+  "schemaVersion": "tutti.app.cli.v1",
+  "scope": "canvas",
+  "description": "Discover, open, inspect, and modify Tutti Canvas files in a project.",
+  "documentation": {
+    "file": "tutti-guide.md"
+  },
+  "commands": [
+    {
+      "path": ["list"],
+      "summary": "List project canvases",
+      "description": "List direct .canvas files under <project-dir>/.tutti-canvases without creating the directory.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project-dir": {
+            "type": "string",
+            "description": "Absolute path of the active Agent project."
+          }
+        },
+        "required": ["project-dir"]
+      },
+      "output": {
+        "defaultMode": "json",
+        "json": true
+      },
+      "handler": {
+        "kind": "http",
+        "method": "POST",
+        "path": "/tutti/cli/list",
+        "timeoutMs": 10000
+      }
+    },
+    {
+      "path": ["open"],
+      "summary": "Create or open a named canvas",
+      "description": "Create or reuse one named .canvas file and make the open Tutti Canvas app display it.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project-dir": {
+            "type": "string",
+            "description": "Absolute path of the active Agent project."
+          },
+          "canvas-name": {
+            "type": "string",
+            "description": "Short descriptive canvas name without the .canvas extension."
+          }
+        },
+        "required": ["project-dir", "canvas-name"]
+      },
+      "output": {
+        "defaultMode": "json",
+        "json": true
+      },
+      "handler": {
+        "kind": "http",
+        "method": "POST",
+        "path": "/tutti/cli/open",
+        "timeoutMs": 10000
+      }
+    },
+    {
+      "path": ["selection"],
+      "summary": "Read the live canvas selection",
+      "description": "Return selected shapes, page, and viewport last reported by the open Tutti Canvas app.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project-dir": {
+            "type": "string"
+          },
+          "canvas-name": {
+            "type": "string"
+          }
+        },
+        "required": ["project-dir", "canvas-name"]
+      },
+      "output": {
+        "defaultMode": "json",
+        "json": true
+      },
+      "handler": {
+        "kind": "http",
+        "method": "POST",
+        "path": "/tutti/cli/selection",
+        "timeoutMs": 10000
+      }
+    },
+    {
+      "path": ["insert-image"],
+      "summary": "Insert a generated bitmap",
+      "description": "Copy a local bitmap into the .canvas ZIP and insert it into the tldraw snapshot, replacing an AI image holder when selected.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project-dir": {
+            "type": "string"
+          },
+          "canvas-name": {
+            "type": "string"
+          },
+          "image-path": {
+            "type": "string",
+            "description": "Absolute local path of the generated PNG, JPEG, GIF, or WebP."
+          },
+          "anchor-shape-id": {
+            "type": "string"
+          },
+          "display-width": {
+            "type": "integer"
+          },
+          "display-height": {
+            "type": "integer"
+          },
+          "alt-text": {
+            "type": "string"
+          }
+        },
+        "required": ["project-dir", "canvas-name", "image-path"]
+      },
+      "output": {
+        "defaultMode": "json",
+        "json": true
+      },
+      "handler": {
+        "kind": "http",
+        "method": "POST",
+        "path": "/tutti/cli/insert-image",
+        "timeoutMs": 30000
+      }
+    }
+  ]
+}
