@@ -152,6 +152,26 @@ export function StandaloneAgentToolSidebarPanel({
       </Suspense>
     );
   }
+  if (panel === "canvas") {
+    return (
+      <Suspense
+        fallback={
+          <StandaloneAgentToolLoadingState label={i18n.t("common.loading")} />
+        }
+      >
+        <LazyStandaloneAgentAppViewerToolPanel
+          active={active}
+          appId={tab.resourceId ?? "tutti-canvas"}
+          contributions={contributions}
+          unavailableLabel={i18n.t(
+            "workspace.agentGui.toolSidebar.unavailable",
+            { tool: locale === "zh-CN" ? "画布" : "Canvas" }
+          )}
+          workspaceId={workspaceId}
+        />
+      </Suspense>
+    );
+  }
   if (panel === "apps") {
     return (
       <Suspense

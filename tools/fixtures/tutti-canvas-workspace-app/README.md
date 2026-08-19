@@ -10,9 +10,11 @@ The prototype intentionally hard-codes the local canvas checkout at
 ## Try it
 
 1. Start Tutti Desktop from this worktree.
-2. Open App Center, choose **Load unpacked**, and select this directory.
+2. Once per local installation, open App Center, choose **Load unpacked**, and
+   select this directory so the app becomes an `@` candidate.
 3. Type `@Tutti Canvas` in an Agent composer and select the result.
-4. The app opens in the right-side Workspace App surface.
+4. The standalone Agent page opens the canvas in its dedicated right-side
+   **Canvas** panel. Other Workspace Apps continue to use the normal Apps panel.
 
 The installed app contributes these Agent-visible commands through the normal
 Workspace App CLI capability guide:

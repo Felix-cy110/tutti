@@ -48,6 +48,7 @@ import { useExternalStoreValue } from "./useExternalStoreValue.ts";
 export type { StandaloneAgentFileOpenRequest } from "./StandaloneAgentToolSidebarPanel.tsx";
 
 const browserControllerReadyTimeoutMs = 8_000;
+const tuttiCanvasAppId = "tutti-canvas";
 
 interface StandaloneAgentToolSidebarProps {
   activityService: WorkspaceAgentActivityService;
@@ -162,13 +163,14 @@ export function StandaloneAgentToolSidebar({
         label: i18n.t("workspace.agentGui.toolSidebar.browser")
       },
       { id: "tasks", label: i18n.t("workspace.agentGui.toolSidebar.tasks") },
+      { id: "canvas", label: locale === "zh-CN" ? "画布" : "Canvas" },
       { id: "apps", label: i18n.t("workspace.agentGui.toolSidebar.apps") },
       {
         id: "messages",
         label: i18n.t("workspace.agentGui.toolSidebar.messages")
       }
     ],
-    [i18n]
+    [i18n, locale]
   );
   const copy = useMemo<AgentToolSidebarCopy>(
     () => ({
@@ -428,7 +430,10 @@ export function StandaloneAgentToolSidebar({
     }
     if (lastHandledAppOpenIdRef.current === appId) return;
     lastHandledAppOpenIdRef.current = appId;
-    sidebarRef.current?.openPanel("apps", appId);
+    sidebarRef.current?.openPanel(
+      appId === tuttiCanvasAppId ? "canvas" : "apps",
+      appId
+    );
   }, [appOpenId]);
   useEffect(() => {
     if (
@@ -461,7 +466,7 @@ export function StandaloneAgentToolSidebar({
     );
     for (const tab of mountedTabs) {
       if (
-        tab.panel === "apps" &&
+        (tab.panel === "apps" || tab.panel === "canvas") &&
         tab.resourceId &&
         !availableAppIds.has(tab.resourceId)
       ) {
@@ -478,7 +483,8 @@ export function StandaloneAgentToolSidebar({
   );
   const handleTabClose = useCallback(
     (tab: AgentToolTab) => {
-      if (tab.panel !== "apps" || !tab.resourceId) return;
+      if ((tab.panel !== "apps" && tab.panel !== "canvas") || !tab.resourceId)
+        return;
       if (lastHandledAppOpenIdRef.current === tab.resourceId) {
         lastHandledAppOpenIdRef.current = null;
       }
@@ -495,7 +501,8 @@ export function StandaloneAgentToolSidebar({
   );
   const resolveTabLabel = useCallback(
     (tab: AgentToolTab, defaultLabel: string) => {
-      if (tab.panel !== "apps" || !tab.resourceId) return defaultLabel;
+      if ((tab.panel !== "apps" && tab.panel !== "canvas") || !tab.resourceId)
+        return defaultLabel;
       const app = appCenterState.apps.find(
         (candidate) => candidate.appId === tab.resourceId
       );
@@ -505,7 +512,7 @@ export function StandaloneAgentToolSidebar({
   );
   const renderTabIcon = useCallback(
     (tab: AgentToolTab): ReactNode => {
-      if (tab.panel === "apps" && tab.resourceId) {
+      if ((tab.panel === "apps" || tab.panel === "canvas") && tab.resourceId) {
         const app = appCenterState.apps.find(
           (candidate) => candidate.appId === tab.resourceId
         );

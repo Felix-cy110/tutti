@@ -59,6 +59,17 @@ test("standalone Agent browser automation honors the requested reveal mode", () 
   );
 });
 
+test("standalone Agent routes Tutti Canvas into its dedicated right-side panel", () => {
+  assert.match(
+    standaloneAgentToolSidebarSource,
+    /appId === tuttiCanvasAppId \? "canvas" : "apps"/
+  );
+  assert.match(
+    standaloneAgentToolSidebarPanelSource,
+    /if \(panel === "canvas"\)[\s\S]*?<LazyStandaloneAgentAppViewerToolPanel/
+  );
+});
+
 test("standalone Agent terminal contribution keeps the real renderer and opens fullscreen without a dock", async () => {
   const renderBody = () => null;
   const contribution: WorkbenchContribution = {

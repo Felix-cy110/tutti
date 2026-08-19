@@ -46,6 +46,7 @@ export type AgentToolSidebarReminderCounts = Partial<
 const iconByPanel = {
   apps: NavApplicationsLinedIcon,
   browser: WebIcon,
+  canvas: PanelIcon,
   files: FolderIcon,
   messages: ChatIcon,
   tasks: TaskIcon,

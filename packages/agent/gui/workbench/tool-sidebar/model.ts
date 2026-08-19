@@ -3,6 +3,7 @@ export const agentToolPanelIds = [
   "terminal",
   "browser",
   "tasks",
+  "canvas",
   "apps",
   "messages"
 ] as const;
@@ -51,6 +52,7 @@ export const agentToolPanelDefaultWidthById: Record<AgentToolPanelId, number> =
   {
     apps: adjacentPanelDefaultWidth,
     browser: adjacentPanelDefaultWidth,
+    canvas: adjacentPanelDefaultWidth,
     files: adjacentPanelDefaultWidth,
     messages: adjacentPanelDefaultWidth,
     tasks: adjacentPanelDefaultWidth,
@@ -60,6 +62,7 @@ export const agentToolPanelDefaultWidthById: Record<AgentToolPanelId, number> =
 export const agentToolPanelMinWidthById: Record<AgentToolPanelId, number> = {
   apps: 420,
   browser: 420,
+  canvas: 520,
   files: 480,
   messages: 320,
   tasks: 420,
@@ -69,6 +72,7 @@ export const agentToolPanelMinWidthById: Record<AgentToolPanelId, number> = {
 export const agentToolPanelMaxWidthById: Record<AgentToolPanelId, number> = {
   apps: 1_200,
   browser: 1_200,
+  canvas: 1_600,
   files: Number.MAX_SAFE_INTEGER,
   messages: 1_200,
   tasks: 1_200,
