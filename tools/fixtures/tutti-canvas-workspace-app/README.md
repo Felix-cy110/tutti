@@ -14,7 +14,9 @@ The prototype intentionally hard-codes the local canvas checkout at
    select this directory so the app becomes an `@` candidate.
 3. Type `@Tutti Canvas` in an Agent composer and select the result.
 4. The standalone Agent page opens the canvas in its dedicated right-side
-   **Canvas** panel. Other Workspace Apps continue to use the normal Apps panel.
+   **Canvas** panel. An Agent embedded in the workspace opens a direct,
+   right-aligned canvas WebView instead of an App Center tab. Other Workspace
+   Apps keep their existing behavior.
 
 The installed app contributes these Agent-visible commands through the normal
 Workspace App CLI capability guide:

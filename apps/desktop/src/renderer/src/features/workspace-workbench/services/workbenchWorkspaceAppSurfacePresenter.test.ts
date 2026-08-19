@@ -5,7 +5,11 @@ import type {
   WorkbenchHostHandle,
   WorkbenchState
 } from "@tutti-os/workbench-surface";
-import { workspaceAppCenterNodeID } from "../../workspace-app-center/services/workspaceAppCenterLaunchIds.ts";
+import {
+  workspaceAppCenterNodeID,
+  workspaceAppWebviewInstanceId,
+  workspaceAppWebviewTypeID
+} from "../../workspace-app-center/services/workspaceAppCenterLaunchIds.ts";
 import { createWorkbenchWorkspaceAppSurfacePresenter } from "./workbenchWorkspaceAppSurfacePresenter.ts";
 
 test("workbench app presenter opens apps as tabs in the singleton app-center node", async () => {
@@ -43,6 +47,56 @@ test("workbench app presenter opens apps as tabs in the singleton app-center nod
       typeId: workspaceAppCenterNodeID
     }
   ]);
+});
+
+test("workbench app presenter opens Tutti Canvas as a dedicated webview node", async () => {
+  const launches: unknown[] = [];
+  const closedNodeIds: string[] = [];
+  const canvasNodeId = `${workspaceAppWebviewTypeID}:${workspaceAppWebviewInstanceId("tutti-canvas")}`;
+  const harness = createViewStateHarness();
+  const presenter = createWorkbenchWorkspaceAppSurfacePresenter({
+    ...harness,
+    host: createHost({ closedNodeIds, launches, nodeIds: [canvasNodeId] }),
+    workspaceId: "workspace-1"
+  });
+  const attempt = {
+    appId: "tutti-canvas",
+    attemptId: 10,
+    workspaceId: "workspace-1"
+  };
+
+  presenter.beginOpen(attempt);
+  const opened = await presenter.presentPrepared({
+    appId: "tutti-canvas",
+    attempt,
+    prepared: true,
+    prevStatus: "idle",
+    workspaceId: "workspace-1"
+  });
+
+  assert.equal(opened, true);
+  assert.deepEqual(harness.read(), {
+    activeAppTab: "recommended",
+    openAppId: null,
+    openAppIds: []
+  });
+  assert.deepEqual(launches, [
+    {
+      payload: {
+        appId: "tutti-canvas",
+        prepared: true,
+        prevStatus: "idle"
+      },
+      reason: "host",
+      typeId: workspaceAppWebviewTypeID
+    }
+  ]);
+  assert.equal(
+    presenter.isOpen({ appId: "tutti-canvas", workspaceId: "workspace-1" }),
+    true
+  );
+  presenter.close({ appId: "tutti-canvas", workspaceId: "workspace-1" });
+  assert.deepEqual(closedNodeIds, [canvasNodeId]);
 });
 
 test("workbench app presenter selects an existing tab and forwards route intent", async () => {
@@ -199,11 +253,17 @@ function createViewStateHarness(
 
 function createHost(input: {
   activations?: unknown[];
+  closedNodeIds?: string[];
   launches?: unknown[];
+  nodeIds?: string[];
 }): WorkbenchHostHandle {
   return {
     activateNode: (...args: unknown[]) => input.activations?.push(args),
-    getSnapshot: () => ({ nodes: [] }) as unknown as WorkbenchState,
+    closeNode: (nodeId: string) => input.closedNodeIds?.push(nodeId),
+    getSnapshot: () =>
+      ({
+        nodes: (input.nodeIds ?? []).map((id) => ({ id }))
+      }) as unknown as WorkbenchState,
     launchNode: async (
       request: Parameters<WorkbenchHostHandle["launchNode"]>[0]
     ) => {

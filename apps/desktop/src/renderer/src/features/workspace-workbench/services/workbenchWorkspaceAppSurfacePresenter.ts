@@ -6,11 +6,19 @@ import type {
 } from "../../workspace-app-center/services/workspaceAppSurfaceHost.interface.ts";
 import { workspaceAppCenterNodeID } from "../../workspace-app-center/services/workspaceAppCenterLaunchIds.ts";
 import {
+  workspaceAppWebviewInstanceId,
+  workspaceAppWebviewTypeID
+} from "../../workspace-app-center/services/workspaceAppCenterLaunchIds.ts";
+import {
   closeWorkspaceAppTab,
   openWorkspaceAppTab,
   readWorkspaceAppTabIds
 } from "../../workspace-app-center/services/workspaceAppCenterTabs.ts";
 import { workspaceOnboardingAppId } from "./workspaceOnboarding.ts";
+
+const tuttiCanvasAppId = "tutti-canvas";
+const tuttiCanvasInstanceId = workspaceAppWebviewInstanceId(tuttiCanvasAppId);
+const tuttiCanvasNodeId = `${workspaceAppWebviewTypeID}:${tuttiCanvasInstanceId}`;
 
 export function createWorkbenchWorkspaceAppSurfacePresenter(input: {
   getViewState(workspaceId: string): WorkspaceAppCenterViewState;
@@ -25,6 +33,7 @@ export function createWorkbenchWorkspaceAppSurfacePresenter(input: {
     number,
     WorkspaceAppCenterViewState
   >();
+  const directCanvasAttemptIds = new Set<number>();
   let latestAttemptId: number | null = null;
 
   const restoreAttempt = (attempt: WorkspaceAppOpenAttempt): void => {
@@ -56,6 +65,10 @@ export function createWorkbenchWorkspaceAppSurfacePresenter(input: {
       if (attempt.workspaceId !== input.workspaceId) {
         return;
       }
+      if (attempt.appId === tuttiCanvasAppId) {
+        directCanvasAttemptIds.add(attempt.attemptId);
+        return;
+      }
       const previousState = input.getViewState(input.workspaceId);
       previousStateByAttemptId.set(attempt.attemptId, previousState);
       latestAttemptId = attempt.attemptId;
@@ -68,6 +81,10 @@ export function createWorkbenchWorkspaceAppSurfacePresenter(input: {
       if (request.workspaceId !== input.workspaceId) {
         return;
       }
+      if (request.appId === tuttiCanvasAppId) {
+        input.host.closeNode(tuttiCanvasNodeId);
+        return;
+      }
       input.setViewState({
         state: closeWorkspaceAppTab(
           input.getViewState(input.workspaceId),
@@ -77,6 +94,14 @@ export function createWorkbenchWorkspaceAppSurfacePresenter(input: {
       });
     },
     isOpen(request) {
+      if (
+        request.workspaceId === input.workspaceId &&
+        request.appId === tuttiCanvasAppId
+      ) {
+        return input.host
+          .getSnapshot()
+          .nodes.some((node) => node.id === tuttiCanvasNodeId);
+      }
       return (
         request.workspaceId === input.workspaceId &&
         readWorkspaceAppTabIds(input.getViewState(input.workspaceId)).includes(
@@ -85,6 +110,24 @@ export function createWorkbenchWorkspaceAppSurfacePresenter(input: {
       );
     },
     async presentPrepared(request) {
+      if (
+        request.appId === tuttiCanvasAppId &&
+        request.workspaceId === input.workspaceId &&
+        directCanvasAttemptIds.delete(request.attempt.attemptId)
+      ) {
+        return Boolean(
+          await input.host.launchNode({
+            payload: {
+              appId: request.appId,
+              ...(request.intent ? { intent: request.intent } : {}),
+              prepared: true,
+              prevStatus: request.prevStatus
+            },
+            reason: "host",
+            typeId: workspaceAppWebviewTypeID
+          })
+        );
+      }
       if (
         request.workspaceId !== input.workspaceId ||
         !previousStateByAttemptId.has(request.attempt.attemptId)
@@ -118,6 +161,10 @@ export function createWorkbenchWorkspaceAppSurfacePresenter(input: {
       return true;
     },
     rollbackOpen(attempt) {
+      if (attempt.appId === tuttiCanvasAppId) {
+        directCanvasAttemptIds.delete(attempt.attemptId);
+        return;
+      }
       restoreAttempt(attempt);
     }
   };

@@ -25,6 +25,7 @@ export {
 };
 
 const workspaceAppInlineBrowserNodeIdPrefix = "workspace-app:inline:";
+const tuttiCanvasAppId = "tutti-canvas";
 
 export async function resolveWorkspaceAppCenterLaunchRequest(input: {
   appCenterService: IWorkspaceAppCenterService;
@@ -80,6 +81,28 @@ export async function resolveWorkspaceAppCenterLaunchRequest(input: {
   });
   const appTitle = resolveWorkspaceAppDisplayName(app);
   const url = resolveWorkspaceAppOpenUrl(app.launchUrl, payload?.intent);
+  if (app.appId === tuttiCanvasAppId) {
+    const instanceId = workspaceAppWebviewInstanceId(app.appId);
+    return {
+      activation: {
+        payload: {
+          appId: app.appId,
+          ...(payload?.intent ? { intent: payload.intent } : {}),
+          title: appTitle,
+          url
+        },
+        type: payload?.intent ? "workspace-app:open" : "open-url"
+      },
+      defaultFrame: resolveTuttiCanvasRightPanelFrame(input.request),
+      dockEntryId: workspaceAppDockEntryId(app.appId),
+      framePolicy: "absolute",
+      instanceId,
+      instanceKey: instanceId,
+      preserveExistingNodeFrame: true,
+      title: appTitle,
+      typeId: workspaceAppWebviewTypeID
+    };
+  }
   input.appCenterService.setViewState({
     state: openWorkspaceAppTab(
       input.appCenterService.getViewState(input.request.workspaceId),
@@ -102,6 +125,38 @@ export async function resolveWorkspaceAppCenterLaunchRequest(input: {
     framePolicy: "cascade",
     instanceId: workspaceAppCenterNodeID,
     typeId: workspaceAppCenterNodeID
+  };
+}
+
+function resolveTuttiCanvasRightPanelFrame(
+  request: WorkbenchHostLaunchRequest
+): WorkbenchHostLaunchResult["defaultFrame"] {
+  const padding = Math.max(0, request.layoutConstraints.surfacePadding);
+  const left = request.layoutConstraints.safeArea.left + padding;
+  const top = request.layoutConstraints.safeArea.top + padding;
+  const availableWidth = Math.max(
+    320,
+    request.surfaceSize.width -
+      left -
+      request.layoutConstraints.safeArea.right -
+      padding
+  );
+  const availableHeight = Math.max(
+    320,
+    request.surfaceSize.height -
+      top -
+      request.layoutConstraints.safeArea.bottom -
+      padding
+  );
+  const width = Math.min(
+    availableWidth,
+    Math.max(520, Math.round(availableWidth * 0.48))
+  );
+  return {
+    height: availableHeight,
+    width,
+    x: left + availableWidth - width,
+    y: top
   };
 }
 

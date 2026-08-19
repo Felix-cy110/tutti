@@ -124,6 +124,50 @@ test("workspace app contribution reports app open from dock launch requests", as
   );
 });
 
+test("Tutti Canvas opens as a dedicated right-side webview instead of an app-center tab", async () => {
+  const app = createApp({
+    appId: "tutti-canvas",
+    name: "Tutti Canvas",
+    runtimeStatus: "running",
+    launchUrl: "http://127.0.0.1:43127"
+  });
+  const service = createAppCenterService([app]);
+  const result = await resolveWorkspaceAppCenterLaunchRequest({
+    appCenterService: service,
+    request: {
+      ...createLaunchRequestContext(),
+      payload: {
+        appId: "tutti-canvas",
+        prepared: true,
+        prevStatus: "idle"
+      },
+      reason: "host",
+      typeId: workspaceAppWebviewTypeID,
+      workspaceId: "workspace-1"
+    }
+  });
+
+  assert.deepEqual(result, {
+    activation: {
+      payload: {
+        appId: "tutti-canvas",
+        title: "Tutti Canvas",
+        url: "http://127.0.0.1:43127"
+      },
+      type: "open-url"
+    },
+    defaultFrame: { height: 769, width: 691, x: 749, y: 52 },
+    dockEntryId: workspaceAppDockEntryId("tutti-canvas"),
+    framePolicy: "absolute",
+    instanceId: workspaceAppWebviewInstanceId("tutti-canvas"),
+    instanceKey: workspaceAppWebviewInstanceId("tutti-canvas"),
+    preserveExistingNodeFrame: true,
+    title: "Tutti Canvas",
+    typeId: workspaceAppWebviewTypeID
+  });
+  assert.equal(service.getViewState("workspace-1").openAppId, null);
+});
+
 test("workspace app launch request does not apply app-specific minimum webview size", async () => {
   const app = createApp({
     appId: "ready",
