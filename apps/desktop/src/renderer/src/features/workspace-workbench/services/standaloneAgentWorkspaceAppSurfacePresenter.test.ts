@@ -1,7 +1,36 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { WorkspaceAppCenterViewState } from "@tutti-os/workspace-app-center";
-import { createStandaloneAgentWorkspaceAppSurfacePresenter } from "./standaloneAgentWorkspaceAppSurfacePresenter.ts";
+import {
+  createStandaloneAgentWorkspaceAppSurfacePresenter,
+  openWorkspaceAppFromStandaloneAgent
+} from "./standaloneAgentWorkspaceAppSurfacePresenter.ts";
+
+test("standalone Agent prepares Tutti Deck and reveals its dedicated sidebar", async () => {
+  const calls: string[] = [];
+  let viewState: WorkspaceAppCenterViewState = {
+    activeAppTab: "recommended",
+    openAppId: null
+  };
+  const opened = await openWorkspaceAppFromStandaloneAgent({
+    appCenterService: {
+      getViewState: () => viewState,
+      openApp: async () => false,
+      prepareAppLaunch: async () => ({ appId: "tutti-deck" }) as never,
+      setViewState: ({ state }) => {
+        viewState = { ...viewState, ...state };
+      }
+    },
+    appId: "tutti-deck",
+    ensureWorkspaceAppPolling: () => calls.push("poll"),
+    revealInSidebar: (appId) => calls.push(`reveal:${appId}`),
+    workspaceId: "workspace-1"
+  });
+
+  assert.equal(opened, true);
+  assert.equal(viewState.openAppId, "tutti-deck");
+  assert.deepEqual(calls, ["poll", "reveal:tutti-deck"]);
+});
 
 test("standalone agent app presenter selects the app before runtime preparation", () => {
   const calls: string[] = [];

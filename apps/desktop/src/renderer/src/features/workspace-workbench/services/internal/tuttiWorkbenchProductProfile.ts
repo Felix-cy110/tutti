@@ -47,6 +47,8 @@ export function createTuttiWorkbenchProductProfile(
           "appI18n",
           "browserApi",
           "browserService",
+          "browserApi",
+          "browserService",
           "reporterService",
           "runtimeApi",
           "workspaceId"

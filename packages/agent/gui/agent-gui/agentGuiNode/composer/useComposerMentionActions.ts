@@ -34,6 +34,7 @@ import {
   type AgentMentionSearchState,
   AgentMentionSearchController
 } from "../AgentMentionSearchController";
+import type { WorkspaceLinkAction } from "../../../actions/workspaceLinkActions";
 
 interface Input {
   workspaceId: string;
@@ -51,6 +52,7 @@ interface Input {
   setPaletteDraftPrompt: Dispatch<SetStateAction<string>>;
   setIsPaletteOpen: Dispatch<SetStateAction<boolean>>;
   onDraftContentChange: (draft: AgentComposerDraft) => void;
+  onLinkAction?: (action: WorkspaceLinkAction) => void;
   showFileMentionPalette: boolean;
   mentionHighlightedKey: string | null;
   mentionSearchState: AgentMentionSearchState;
@@ -96,6 +98,7 @@ export function useComposerMentionActions(input: Input) {
     setPaletteDraftPrompt,
     setIsPaletteOpen,
     onDraftContentChange,
+    onLinkAction,
     showFileMentionPalette,
     mentionHighlightedKey,
     mentionSearchState,
@@ -186,6 +189,14 @@ export function useComposerMentionActions(input: Input) {
         return;
       }
       fileMentionSuggestion?.command(entry);
+      if (entry.kind === "workspace-app" && entry.appId === "tutti-deck") {
+        onLinkAction?.({
+          type: "open-workspace-app",
+          workspaceId: entry.workspaceId,
+          appId: entry.appId,
+          source: "agent-composer-mention"
+        });
+      }
       if (fileMentionSuggestion) {
         exitAgentFileMentionSuggestion(fileMentionSuggestion.editor);
       }
@@ -193,7 +204,7 @@ export function useComposerMentionActions(input: Input) {
       setFileMentionSuggestion(null);
       setIsPaletteOpen(false);
     },
-    [fileMentionSuggestion, navigateIntoFileMentionItem]
+    [fileMentionSuggestion, navigateIntoFileMentionItem, onLinkAction]
   );
 
   const closeFileMentionPalette = useCallback((): void => {

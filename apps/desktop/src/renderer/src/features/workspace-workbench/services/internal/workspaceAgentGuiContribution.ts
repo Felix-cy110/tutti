@@ -1,4 +1,5 @@
-import { createElement, useEffect, useMemo, type ReactNode } from "react";
+import { createElement, type ReactNode } from "react";
+import type { BrowserNodeFeature } from "@tutti-os/browser-node";
 import type {
   AgentGUIProvider,
   AgentGUIAllAgentsPresentation,
@@ -49,7 +50,7 @@ import type { IAgentProviderStatusService as AgentProviderStatusService } from "
 import type { IAgentQuickPromptService as AgentQuickPromptService } from "@renderer/features/workspace-agent/services/agentQuickPromptService.interface.ts";
 import type { DesktopAgentGUIWorkbenchBodyProps } from "@renderer/features/workspace-agent/ui/desktopAgentGUIWorkbenchModel.ts";
 import { DesktopAgentGUIWorkbenchBody } from "@renderer/features/workspace-agent/ui/DesktopAgentGUIWorkbenchBody.tsx";
-import { runDesktopAgentGUILinkAction } from "@renderer/features/workspace-agent/services/desktopAgentGUILinkActions.ts";
+import type { DesktopAgentGUILinkActionDependencies } from "@renderer/features/workspace-agent/services/desktopAgentGUILinkActions.ts";
 import {
   workspaceWorkbenchDesktopI18nKeys,
   type WorkspaceWorkbenchDesktopI18nRuntime
@@ -61,26 +62,7 @@ import { requestGroupChatLaunch } from "../groupChatLaunchCoordinator.ts";
 import { useExternalStoreValue } from "../../ui/useExternalStoreValue.ts";
 import { workspaceAgentGuiNodeFrame } from "./workspaceWorkbenchComposition.ts";
 import type { AgentSessionReplayDesktopComposition } from "@renderer/features/agent-session-replay/services/agentSessionReplayDesktopComposition.ts";
-
-function DesktopWorkspaceAgentGUIWorkbenchBodyWithSideRuntime({
-  createAgentSideConversationRuntime,
-  ...props
-}: Omit<
-  DesktopWorkspaceAgentGUIWorkbenchBodyProps,
-  "agentSideConversationRuntime"
-> & {
-  createAgentSideConversationRuntime: () => DesktopAgentGUIWorkbenchBodyProps["agentSideConversationRuntime"];
-}) {
-  const sideRuntime = useMemo(
-    () => createAgentSideConversationRuntime(),
-    [createAgentSideConversationRuntime]
-  );
-  useEffect(() => () => sideRuntime?.dispose?.(), [sideRuntime]);
-  return createElement(DesktopWorkspaceAgentGUIWorkbenchBody, {
-    ...props,
-    agentSideConversationRuntime: sideRuntime
-  });
-}
+import { DesktopWorkspaceAgentDeckSidebar } from "./DesktopWorkspaceAgentDeckSidebar.tsx";
 
 export function createWorkspaceAgentGuiContribution(input: {
   agentQuickPromptService?: AgentQuickPromptService;
@@ -119,6 +101,7 @@ export function createWorkspaceAgentGuiContribution(input: {
   workspaceFilePreviewSurfaceHost: IWorkspaceFilePreviewSurfaceHost;
   workspaceUserProjectService: IWorkspaceUserProjectService;
   workspaceId: string;
+  workspaceAppBrowserFeature?: BrowserNodeFeature;
 }): WorkbenchContribution {
   const defaultAgentProvider = isAgentGuiWorkbenchProvider(
     input.defaultAgentProvider
@@ -153,28 +136,23 @@ export function createWorkspaceAgentGuiContribution(input: {
   const sessionEngine = input.workspaceAgentActivityService.getSessionEngine(
     input.workspaceId
   );
-  const handleLinkAction: NonNullable<
-    DesktopAgentGUIWorkbenchBodyProps["onLinkAction"]
-  > = (action) => {
-    void runDesktopAgentGUILinkAction(action, {
-      getAgentSession: ({ agentSessionId, workspaceId }) =>
-        input.workspaceAgentActivityService.getSession(
-          workspaceId,
-          agentSessionId
-        ),
-      homeDirectory: input.platformApi.homeDirectory,
-      launchAgentGui: requestWorkspaceAgentGuiLaunch,
-      launchWorkspaceIssueManager: requestWorkspaceIssueManagerLaunch,
-      launchWorkspaceFiles: requestWorkspaceFilesLaunch,
-      launchWorkspaceApp: async ({ appId, workspaceId }) => {
-        await input.appCenterService.openApp({ appId, workspaceId });
-        return true;
-      },
-      launchGroupChat: requestGroupChatLaunch,
-      openBrowserUrl: requestWorkspaceBrowserLaunch,
-      openExternalUrl: (url) => input.hostFilesApi.openExternal(url),
-      workspaceId: input.workspaceId
-    });
+  const linkActionDependencies: Omit<
+    DesktopAgentGUILinkActionDependencies,
+    "launchWorkspaceApp"
+  > = {
+    getAgentSession: ({ agentSessionId, workspaceId }) =>
+      input.workspaceAgentActivityService.getSession(
+        workspaceId,
+        agentSessionId
+      ),
+    homeDirectory: input.platformApi.homeDirectory,
+    launchAgentGui: requestWorkspaceAgentGuiLaunch,
+    launchWorkspaceIssueManager: requestWorkspaceIssueManagerLaunch,
+    launchWorkspaceFiles: requestWorkspaceFilesLaunch,
+    launchGroupChat: requestGroupChatLaunch,
+    openBrowserUrl: requestWorkspaceBrowserLaunch,
+    openExternalUrl: (url) => input.hostFilesApi.openExternal(url),
+    workspaceId: input.workspaceId
   };
   const renderAgentGuiWorkbenchBody = (
     context: Parameters<
@@ -184,60 +162,71 @@ export function createWorkspaceAgentGuiContribution(input: {
       Parameters<typeof createAgentGuiWorkbenchContribution>[0]["renderBody"]
     >[1]
   ) => {
-    return createElement(DesktopWorkspaceAgentGUIWorkbenchBodyWithSideRuntime, {
-      agentActivityRuntime: agentGUIWorkbenchHostInput.agentActivityRuntime,
+    return createElement(DesktopWorkspaceAgentDeckSidebar, {
+      appCenterService: input.appCenterService,
+      appI18n: input.appI18n,
+      context,
       createAgentSideConversationRuntime:
         agentGUIWorkbenchHostInput.createAgentSideConversationRuntime,
-      agentHostApi: agentGUIWorkbenchHostInput.agentHostApi,
-      agentSessionReplayService:
-        agentGUIWorkbenchHostInput.agentSessionReplayService,
-      agentStatusSource: workspaceAgentStatusSource,
-      tuttiModePlanReviewRuntime:
-        agentGUIWorkbenchHostInput.tuttiModePlanReviewRuntime,
-      appCenterService: input.appCenterService,
-      agentProviderStatusService: input.agentProviderStatusService,
-      context,
-      computerUseApi: input.computerUseApi,
-      dockPreviewCache: input.dockPreviewCache,
-      onCapabilitySettingsRequest: input.onCapabilitySettingsRequest,
-      onLinkAction: handleLinkAction,
-      onOpenAgentConversationWindow: async (request) => {
-        await requestWorkspaceAgentGuiLaunch({
-          ...request,
-          openInNewWindow: true
-        });
-      },
-      onStateChange: (...args) => helpers.onStateChange(...args),
-      onConversationRailLayoutChange: helpers.onConversationRailLayoutChange,
-      agentsService: helpers.agentDirectory,
-      allAgentsPresentation: input.allAgentsPresentation,
-      renderAgentsEmpty: input.renderAgentsEmpty,
-      comingSoonAgentProviders: input.comingSoonAgentProviders,
-      defaultAgentProvider: input.defaultAgentProvider,
-      contextMentionProviders:
-        agentGUIWorkbenchHostInput.contextMentionProviders,
-      runtimeApi: input.runtimeApi,
-      trackAgentProviderChatReady:
-        agentGUIWorkbenchHostInput.trackAgentProviderChatReady,
-      onEngagementEvent: trackWorkspaceAgentGUIEngagement,
-      trackWorkspaceFileReferences:
-        agentGUIWorkbenchHostInput.trackWorkspaceFileReferences,
-      workspaceFileReferenceAdapter:
-        agentGUIWorkbenchHostInput.workspaceFileReferenceAdapter,
-      resolveExternalPromptEntries:
-        agentGUIWorkbenchHostInput.resolveExternalPromptEntries,
-      prepareExternalPromptFiles:
-        agentGUIWorkbenchHostInput.prepareExternalPromptFiles,
-      onRequestGitBranches: agentGUIWorkbenchHostInput.onRequestGitBranches,
-      referenceSourceAggregator:
-        agentGUIWorkbenchHostInput.referenceSourceAggregator,
-      resolveWorkspaceReferenceEntryIconUrl:
-        agentGUIWorkbenchHostInput.resolveWorkspaceReferenceEntryIconUrl,
-      resolveMentionReferenceTarget:
-        agentGUIWorkbenchHostInput.resolveMentionReferenceTarget,
-      resolveWorkspaceReferenceInitialTarget:
-        agentGUIWorkbenchHostInput.resolveWorkspaceReferenceInitialTarget,
-      workspaceId: input.workspaceId
+      linkActionDependencies,
+      workspaceAppBrowserFeature: input.workspaceAppBrowserFeature,
+      workspaceId: input.workspaceId,
+      renderAgentBody: ({ agentSideConversationRuntime, onLinkAction }) =>
+        createElement(DesktopWorkspaceAgentGUIWorkbenchBody, {
+          agentActivityRuntime: agentGUIWorkbenchHostInput.agentActivityRuntime,
+          agentSideConversationRuntime,
+          agentHostApi: agentGUIWorkbenchHostInput.agentHostApi,
+          agentSessionReplayService:
+            agentGUIWorkbenchHostInput.agentSessionReplayService,
+          agentStatusSource: workspaceAgentStatusSource,
+          tuttiModePlanReviewRuntime:
+            agentGUIWorkbenchHostInput.tuttiModePlanReviewRuntime,
+          appCenterService: input.appCenterService,
+          agentProviderStatusService: input.agentProviderStatusService,
+          context,
+          computerUseApi: input.computerUseApi,
+          dockPreviewCache: input.dockPreviewCache,
+          onCapabilitySettingsRequest: input.onCapabilitySettingsRequest,
+          onLinkAction,
+          onOpenAgentConversationWindow: async (request) => {
+            await requestWorkspaceAgentGuiLaunch({
+              ...request,
+              openInNewWindow: true
+            });
+          },
+          onStateChange: (...args) => helpers.onStateChange(...args),
+          onConversationRailLayoutChange:
+            helpers.onConversationRailLayoutChange,
+          agentsService: helpers.agentDirectory,
+          allAgentsPresentation: input.allAgentsPresentation,
+          renderAgentsEmpty: input.renderAgentsEmpty,
+          comingSoonAgentProviders: input.comingSoonAgentProviders,
+          defaultAgentProvider: input.defaultAgentProvider,
+          contextMentionProviders:
+            agentGUIWorkbenchHostInput.contextMentionProviders,
+          runtimeApi: input.runtimeApi,
+          trackAgentProviderChatReady:
+            agentGUIWorkbenchHostInput.trackAgentProviderChatReady,
+          onEngagementEvent: trackWorkspaceAgentGUIEngagement,
+          trackWorkspaceFileReferences:
+            agentGUIWorkbenchHostInput.trackWorkspaceFileReferences,
+          workspaceFileReferenceAdapter:
+            agentGUIWorkbenchHostInput.workspaceFileReferenceAdapter,
+          resolveExternalPromptEntries:
+            agentGUIWorkbenchHostInput.resolveExternalPromptEntries,
+          prepareExternalPromptFiles:
+            agentGUIWorkbenchHostInput.prepareExternalPromptFiles,
+          onRequestGitBranches: agentGUIWorkbenchHostInput.onRequestGitBranches,
+          referenceSourceAggregator:
+            agentGUIWorkbenchHostInput.referenceSourceAggregator,
+          resolveWorkspaceReferenceEntryIconUrl:
+            agentGUIWorkbenchHostInput.resolveWorkspaceReferenceEntryIconUrl,
+          resolveMentionReferenceTarget:
+            agentGUIWorkbenchHostInput.resolveMentionReferenceTarget,
+          resolveWorkspaceReferenceInitialTarget:
+            agentGUIWorkbenchHostInput.resolveWorkspaceReferenceInitialTarget,
+          workspaceId: input.workspaceId
+        })
     });
   };
 

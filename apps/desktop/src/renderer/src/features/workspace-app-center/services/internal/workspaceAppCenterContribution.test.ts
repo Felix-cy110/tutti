@@ -18,6 +18,7 @@ import {
   readWorkspaceAppIdFromNodeId,
   reportWorkspaceAppOpenedFromDockEntry,
   resolveWorkspaceAppCenterLaunchRequest,
+  workspaceAppAgentInlineBrowserNodeId,
   workspaceAppCenterNodeID,
   workspaceAppDockEntryId,
   workspaceAppInlineBrowserNodeId,
@@ -34,6 +35,15 @@ test("workspace app node ids resolve app ids from dock, inline, and webview node
   assert.equal(
     readWorkspaceAppIdFromNodeId(workspaceAppInlineBrowserNodeId("group-chat")),
     "group-chat"
+  );
+  assert.equal(
+    readWorkspaceAppIdFromNodeId(
+      workspaceAppAgentInlineBrowserNodeId({
+        appId: "tutti-deck",
+        surfaceId: "agent:session/1"
+      })
+    ),
+    "tutti-deck"
   );
   assert.equal(
     readWorkspaceAppIdFromNodeId(

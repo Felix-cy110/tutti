@@ -407,7 +407,12 @@ export function AgentGuiWorkbenchHeader({
               )
             : null
         )
-      : null
+      : null,
+    createElement("div", {
+      className:
+        "agent-gui-workbench-header__secondary-accessory agent-gui-workbench-header__tool-sidebar-portal",
+      "data-agent-gui-workbench-tool-sidebar-portal": "true"
+    })
   );
 }
 

@@ -11,6 +11,13 @@ import {
   readWorkspaceAppTabIds
 } from "../../workspace-app-center/services/workspaceAppCenterTabs.ts";
 import { workspaceOnboardingAppId } from "./workspaceOnboarding.ts";
+import {
+  closeWorkspaceAgentDeckSurfaces,
+  isWorkspaceAgentDeckSurfaceOpen,
+  openWorkspaceAgentDeckSurface
+} from "./workspaceAgentDeckLaunchCoordinator.ts";
+
+const tuttiDeckAppId = "tutti-deck";
 
 export function createWorkbenchWorkspaceAppSurfacePresenter(input: {
   getViewState(workspaceId: string): WorkspaceAppCenterViewState;
@@ -25,6 +32,7 @@ export function createWorkbenchWorkspaceAppSurfacePresenter(input: {
     number,
     WorkspaceAppCenterViewState
   >();
+  const directDeckAttemptIds = new Set<number>();
   let latestAttemptId: number | null = null;
 
   const restoreAttempt = (attempt: WorkspaceAppOpenAttempt): void => {
@@ -56,6 +64,10 @@ export function createWorkbenchWorkspaceAppSurfacePresenter(input: {
       if (attempt.workspaceId !== input.workspaceId) {
         return;
       }
+      if (attempt.appId === tuttiDeckAppId) {
+        directDeckAttemptIds.add(attempt.attemptId);
+        return;
+      }
       const previousState = input.getViewState(input.workspaceId);
       previousStateByAttemptId.set(attempt.attemptId, previousState);
       latestAttemptId = attempt.attemptId;
@@ -68,6 +80,10 @@ export function createWorkbenchWorkspaceAppSurfacePresenter(input: {
       if (request.workspaceId !== input.workspaceId) {
         return;
       }
+      if (request.appId === tuttiDeckAppId) {
+        closeWorkspaceAgentDeckSurfaces(input.workspaceId);
+        return;
+      }
       input.setViewState({
         state: closeWorkspaceAppTab(
           input.getViewState(input.workspaceId),
@@ -77,6 +93,12 @@ export function createWorkbenchWorkspaceAppSurfacePresenter(input: {
       });
     },
     isOpen(request) {
+      if (
+        request.workspaceId === input.workspaceId &&
+        request.appId === tuttiDeckAppId
+      ) {
+        return isWorkspaceAgentDeckSurfaceOpen(input.workspaceId);
+      }
       return (
         request.workspaceId === input.workspaceId &&
         readWorkspaceAppTabIds(input.getViewState(input.workspaceId)).includes(
@@ -85,6 +107,18 @@ export function createWorkbenchWorkspaceAppSurfacePresenter(input: {
       );
     },
     async presentPrepared(request) {
+      if (
+        request.appId === tuttiDeckAppId &&
+        request.workspaceId === input.workspaceId &&
+        directDeckAttemptIds.delete(request.attempt.attemptId)
+      ) {
+        const focusedNodeId =
+          input.host.getSnapshot().nodeStack?.at(-1) ?? null;
+        return openWorkspaceAgentDeckSurface({
+          nodeId: focusedNodeId,
+          workspaceId: input.workspaceId
+        });
+      }
       if (
         request.workspaceId !== input.workspaceId ||
         !previousStateByAttemptId.has(request.attempt.attemptId)
@@ -118,6 +152,10 @@ export function createWorkbenchWorkspaceAppSurfacePresenter(input: {
       return true;
     },
     rollbackOpen(attempt) {
+      if (attempt.appId === tuttiDeckAppId) {
+        directDeckAttemptIds.delete(attempt.attemptId);
+        return;
+      }
       restoreAttempt(attempt);
     }
   };

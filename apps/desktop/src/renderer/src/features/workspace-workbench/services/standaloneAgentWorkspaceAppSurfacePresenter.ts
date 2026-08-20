@@ -1,10 +1,55 @@
 import type { WorkspaceAppCenterViewState } from "@tutti-os/workspace-app-center";
 import type { WorkspaceAppSurfacePresenter } from "../../workspace-app-center/services/workspaceAppSurfaceHost.interface.ts";
+import type { IWorkspaceAppCenterService } from "@renderer/features/workspace-app-center";
 import {
   closeWorkspaceAppTab,
   openWorkspaceAppTab,
   readWorkspaceAppTabIds
 } from "../../workspace-app-center/services/workspaceAppCenterTabs.ts";
+
+const tuttiDeckWorkspaceAppId = "tutti-deck";
+
+export interface StandaloneAgentWorkspaceAppOpenRequest {
+  appId: string;
+  requestID: string;
+}
+
+export async function openWorkspaceAppFromStandaloneAgent(input: {
+  appCenterService: Pick<
+    IWorkspaceAppCenterService,
+    "getViewState" | "openApp" | "prepareAppLaunch" | "setViewState"
+  >;
+  appId: string;
+  ensureWorkspaceAppPolling(): void;
+  revealInSidebar?(appId: string): void;
+  workspaceId: string;
+}): Promise<boolean> {
+  if (input.appId !== tuttiDeckWorkspaceAppId) {
+    return await input.appCenterService.openApp({
+      appId: input.appId,
+      workspaceId: input.workspaceId
+    });
+  }
+
+  const app = await input.appCenterService.prepareAppLaunch({
+    appId: input.appId,
+    workspaceId: input.workspaceId
+  });
+  if (!app) {
+    return false;
+  }
+
+  input.ensureWorkspaceAppPolling();
+  input.appCenterService.setViewState({
+    state: openWorkspaceAppTab(
+      input.appCenterService.getViewState(input.workspaceId),
+      app.appId
+    ),
+    workspaceId: input.workspaceId
+  });
+  input.revealInSidebar?.(app.appId);
+  return true;
+}
 
 export function createStandaloneAgentWorkspaceAppSurfacePresenter(input: {
   ensureWorkspaceAppPolling(): void;

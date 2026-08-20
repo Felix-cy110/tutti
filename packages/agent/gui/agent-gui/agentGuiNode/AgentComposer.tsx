@@ -54,6 +54,7 @@ import {
   resolveAgentExternalPromptEntries
 } from "./model/agentExternalPromptEntries";
 import { useComposerInputHistory } from "./composer/useComposerInputHistory";
+import { resolveSubmittedTuttiDeckLaunch } from "./composer/resolveComposerWorkspaceAppLaunch";
 
 export { formatSlashStatusTokenCount };
 
@@ -284,6 +285,13 @@ export function AgentComposer(props: AgentComposerProps): React.JSX.Element {
     displayPrompt,
     options
   ) => {
+    const deckLaunch = resolveSubmittedTuttiDeckLaunch({
+      content,
+      displayPrompt
+    });
+    if (deckLaunch) {
+      onLinkAction?.(deckLaunch);
+    }
     onSubmit(
       content,
       displayPrompt,
@@ -546,6 +554,7 @@ export function AgentComposer(props: AgentComposerProps): React.JSX.Element {
     setPaletteDraftPrompt,
     setIsPaletteOpen,
     onDraftContentChange: handleDraftContentChange,
+    onLinkAction,
     showFileMentionPalette,
     mentionHighlightedKey,
     mentionSearchState,

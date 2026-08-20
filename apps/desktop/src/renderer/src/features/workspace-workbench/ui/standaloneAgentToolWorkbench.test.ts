@@ -12,6 +12,7 @@ import {
   createStandaloneAgentToolSnapshotRepository,
   resolveStandaloneAgentToolContribution
 } from "./standaloneAgentToolWorkbench.ts";
+import { resolveWorkspaceAppToolPanelId } from "../services/tuttiDeckTarget.ts";
 
 const standaloneAgentToolSidebarPanelSource = readFileSync(
   new URL("./StandaloneAgentToolSidebarPanel.tsx", import.meta.url),
@@ -57,6 +58,11 @@ test("standalone Agent browser automation honors the requested reveal mode", () 
     standaloneAgentToolSidebarSource,
     /request\.reveal === false[\s\S]*?ensurePanel\("browser", sessionId\)[\s\S]*?openPanel\("browser", sessionId\)/
   );
+});
+
+test("standalone Agent routes only Tutti Deck into its dedicated panel", () => {
+  assert.equal(resolveWorkspaceAppToolPanelId("tutti-deck"), "deck");
+  assert.equal(resolveWorkspaceAppToolPanelId("documents"), "apps");
 });
 
 test("standalone Agent terminal contribution keeps the real renderer and opens fullscreen without a dock", async () => {

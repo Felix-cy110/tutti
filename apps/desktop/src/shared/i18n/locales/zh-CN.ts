@@ -244,6 +244,7 @@ export const zhCN = {
       toolSidebar: {
         apps: "应用",
         browser: "浏览器",
+        deck: "幻灯片",
         close: "关闭",
         closeRightPanel: "收起右侧面板",
         expandPanel: "扩大面板",

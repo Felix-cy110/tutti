@@ -10,6 +10,11 @@ import type { WorkspaceAgentActivityService } from "@renderer/features/workspace
 import type { DesktopBrowserApi } from "@preload/types";
 import type { useTranslation } from "@renderer/i18n";
 import type { StandaloneAgentIssueManagerOpenRequest } from "../services/standaloneAgentIssueManagerLaunch.ts";
+import {
+  resolveTuttiDeckOpenRouteIntent,
+  tuttiDeckWorkspaceAppId,
+  type TuttiDeckTarget
+} from "../services/tuttiDeckTarget.ts";
 import { StandaloneAgentBrowserToolPanel } from "./StandaloneAgentBrowserToolPanel.tsx";
 import { StandaloneAgentToolLoadingState } from "./StandaloneAgentToolLoadingState.tsx";
 
@@ -65,6 +70,7 @@ export function StandaloneAgentToolSidebarPanel({
   appI18n,
   activityService,
   browserApi,
+  deckTarget,
   contributions,
   fileOpenRequest,
   instanceId,
@@ -85,6 +91,7 @@ export function StandaloneAgentToolSidebarPanel({
   appI18n: I18nRuntime<string>;
   activityService: WorkspaceAgentActivityService;
   browserApi?: DesktopBrowserApi;
+  deckTarget: TuttiDeckTarget | null;
   contributions: readonly WorkbenchContribution[] | undefined;
   fileOpenRequest: StandaloneAgentFileOpenRequest | null;
   instanceId: string;
@@ -128,6 +135,30 @@ export function StandaloneAgentToolSidebarPanel({
           showInternalOpenWithActions
           showPreviewPanel
           workspaceID={workspaceId}
+        />
+      </Suspense>
+    );
+  }
+  if (panel === "deck") {
+    return (
+      <Suspense
+        fallback={
+          <StandaloneAgentToolLoadingState label={i18n.t("common.loading")} />
+        }
+      >
+        <LazyStandaloneAgentAppViewerToolPanel
+          active={active}
+          appId={tuttiDeckWorkspaceAppId}
+          contributions={contributions}
+          launchIntent={
+            deckTarget ? resolveTuttiDeckOpenRouteIntent(deckTarget) : null
+          }
+          resourceKey={deckTarget?.deckFile ?? null}
+          unavailableLabel={i18n.t(
+            "workspace.agentGui.toolSidebar.unavailable",
+            { tool: i18n.t("workspace.agentGui.toolSidebar.deck") }
+          )}
+          workspaceId={workspaceId}
         />
       </Suspense>
     );

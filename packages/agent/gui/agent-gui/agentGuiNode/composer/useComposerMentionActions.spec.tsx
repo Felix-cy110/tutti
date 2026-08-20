@@ -62,6 +62,53 @@ describe("useComposerMentionActions directory navigation", () => {
   });
 });
 
+describe("useComposerMentionActions workspace app selection", () => {
+  it("opens the Tutti Deck app after inserting its mention", () => {
+    const input = createInput({
+      replaceTextBeforeSelection: vi.fn(() => null),
+      selectFileMentionNavigationItem: vi.fn(() => false),
+      updateQuery: vi.fn()
+    });
+    const onLinkAction = vi.fn();
+    input.onLinkAction = onLinkAction;
+    const transaction = {
+      setMeta: vi.fn(() => transaction)
+    };
+    input.fileMentionSuggestion!.editor = {
+      view: {
+        state: { tr: transaction },
+        dispatch: vi.fn()
+      }
+    } as unknown as Editor;
+    input.mentionControllerRef.current = {
+      close: vi.fn()
+    } as never;
+    const workspaceApp: AgentContextMentionItem = {
+      kind: "workspace-app",
+      href: "mention://workspace-app/tutti-deck?workspaceId=workspace-1",
+      workspaceId: "workspace-1",
+      targetId: "tutti-deck",
+      appId: "tutti-deck",
+      name: "Tutti Deck"
+    };
+    const { result } = renderHook(() => useComposerMentionActions(input));
+
+    act(() => {
+      result.current.selectFileMention(workspaceApp);
+    });
+
+    expect(input.fileMentionSuggestion?.command).toHaveBeenCalledWith(
+      workspaceApp
+    );
+    expect(onLinkAction).toHaveBeenCalledWith({
+      type: "open-workspace-app",
+      workspaceId: "workspace-1",
+      appId: "tutti-deck",
+      source: "agent-composer-mention"
+    });
+  });
+});
+
 describe("useComposerMentionActions palette dismissal", () => {
   it("closes the mention palette when pointer or focus moves outside", () => {
     const input = createInput({

@@ -1,0 +1,156 @@
+{
+  "schemaVersion": "tutti.app.cli.v1",
+  "scope": "deck",
+  "description": "Discover, open, inspect, and modify Tutti Deck files in a project.",
+  "documentation": {
+    "file": "tutti-guide.md"
+  },
+  "commands": [
+    {
+      "path": ["list"],
+      "summary": "List project Decks",
+      "description": "List direct .deck files under <project-dir>/.tutti-decks without creating the directory.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project-dir": {
+            "type": "string",
+            "description": "Absolute path of the active Agent project."
+          }
+        },
+        "required": ["project-dir"]
+      },
+      "output": { "defaultMode": "json", "json": true },
+      "handler": {
+        "kind": "http",
+        "method": "POST",
+        "path": "/tutti/cli/list",
+        "timeoutMs": 10000
+      }
+    },
+    {
+      "path": ["open"],
+      "summary": "Create or open a named Deck",
+      "description": "Create or reuse one named .deck file and make the open Tutti Deck app display it.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project-dir": { "type": "string" },
+          "deck-name": {
+            "type": "string",
+            "description": "Short descriptive Deck name without the .deck extension."
+          },
+          "title": { "type": "string" }
+        },
+        "required": ["project-dir", "deck-name"]
+      },
+      "output": { "defaultMode": "json", "json": true },
+      "handler": {
+        "kind": "http",
+        "method": "POST",
+        "path": "/tutti/cli/open",
+        "timeoutMs": 10000
+      }
+    },
+    {
+      "path": ["selection"],
+      "summary": "Read the live Deck selection",
+      "description": "Return the active slide and selected object last reported by the open Tutti Deck app.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project-dir": { "type": "string" },
+          "deck-name": { "type": "string" }
+        },
+        "required": ["project-dir", "deck-name"]
+      },
+      "output": { "defaultMode": "json", "json": true },
+      "handler": {
+        "kind": "http",
+        "method": "POST",
+        "path": "/tutti/cli/selection",
+        "timeoutMs": 10000
+      }
+    },
+    {
+      "path": ["document"],
+      "summary": "Read Agent-editable Deck JSON",
+      "description": "Read the Deck document without image Base64 data and return the revision required for updates.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project-dir": { "type": "string" },
+          "deck-name": { "type": "string" }
+        },
+        "required": ["project-dir", "deck-name"]
+      },
+      "output": { "defaultMode": "json", "json": true },
+      "handler": {
+        "kind": "http",
+        "method": "POST",
+        "path": "/tutti/cli/document",
+        "timeoutMs": 10000
+      }
+    },
+    {
+      "path": ["update"],
+      "summary": "Apply semantic Deck operations",
+      "description": "Atomically update a Deck by stable slide and object ids. Read the document first and pass its exact revision.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project-dir": { "type": "string" },
+          "deck-name": { "type": "string" },
+          "expected-revision": { "type": "string" },
+          "operations-json": {
+            "type": "string",
+            "description": "JSON array containing 1 to 100 set/add/delete/move Deck operations."
+          }
+        },
+        "required": [
+          "project-dir",
+          "deck-name",
+          "expected-revision",
+          "operations-json"
+        ]
+      },
+      "output": { "defaultMode": "json", "json": true },
+      "handler": {
+        "kind": "http",
+        "method": "POST",
+        "path": "/tutti/cli/update",
+        "timeoutMs": 30000
+      }
+    },
+    {
+      "path": ["insert-image"],
+      "summary": "Insert a generated bitmap",
+      "description": "Copy a local bitmap into the .deck ZIP and insert or replace an image object.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project-dir": { "type": "string" },
+          "deck-name": { "type": "string" },
+          "image-path": {
+            "type": "string",
+            "description": "Absolute local path of the generated PNG, JPEG, GIF, or WebP."
+          },
+          "slide-id": { "type": "string" },
+          "target-object-id": { "type": "string" },
+          "replace-selected-image": { "type": "boolean" },
+          "display-width": { "type": "integer" },
+          "display-height": { "type": "integer" },
+          "alt-text": { "type": "string" }
+        },
+        "required": ["project-dir", "deck-name", "image-path"]
+      },
+      "output": { "defaultMode": "json", "json": true },
+      "handler": {
+        "kind": "http",
+        "method": "POST",
+        "path": "/tutti/cli/insert-image",
+        "timeoutMs": 30000
+      }
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tutti Deck</title>
+    <style>
+      .poc-status {
+        display: grid;
+        width: 100%;
+        height: 100%;
+        align-content: center;
+        justify-items: center;
+        gap: 12px;
+        padding: 32px;
+        background: #eee8dc;
+        color: #5c6b50;
+        font-size: 14px;
+        text-align: center;
+      }
+      .poc-status button {
+        padding: 7px 14px;
+        border: 1px solid rgb(184 160 124 / 48%);
+        border-radius: 8px;
+        background: #f4efe6;
+        color: #2a2620;
+        cursor: pointer;
+      }
+      .poc-deck-storage {
+        position: fixed;
+        z-index: 1000;
+        right: 12px;
+        bottom: 8px;
+        max-width: min(52vw, 620px);
+        overflow: hidden;
+        border: 1px solid rgb(184 160 124 / 35%);
+        border-radius: 7px;
+        background: rgb(244 239 230 / 88%);
+        padding: 4px 8px;
+        color: #81796e;
+        font-family: "Courier New", monospace;
+        font-size: 9px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

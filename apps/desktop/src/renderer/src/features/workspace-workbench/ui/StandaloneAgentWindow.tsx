@@ -692,13 +692,15 @@ export function StandaloneAgentWindow({
   const {
     handleLinkAction,
     handleOpenMessageCenterChat,
-    issueManagerOpenRequest
+    issueManagerOpenRequest,
+    workspaceAppOpenRequest
   } = useStandaloneAgentLaunchRouting({
     agentDirectorySnapshot,
     agentProviderStatusService,
     headerProvider,
     homeDirectory: desktopApi.platform.homeDirectory,
     hostWindowApi,
+    ensureWorkspaceAppPolling,
     openExternalUrl: desktopApi.host.files.openExternal,
     openFileInSidebar,
     runtimeApi: desktopApi.runtime,
@@ -816,6 +818,7 @@ export function StandaloneAgentWindow({
           contributions={toolWorkbench.contributions}
           fileOpenRequest={fileOpenRequest}
           issueManagerOpenRequest={issueManagerOpenRequest}
+          workspaceAppOpenRequest={workspaceAppOpenRequest}
           mainContentMinWidthPx={minimumAgentGuiViewportWidthPx}
           onLayoutWidthChange={setToolSidebarLayoutWidthPx}
           renderHeader={(toolSidebar) => (

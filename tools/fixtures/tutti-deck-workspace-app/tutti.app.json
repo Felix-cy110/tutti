@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "tutti.app.manifest.v1",
+  "appId": "tutti-deck",
+  "version": "0.0.1-poc",
+  "name": "Tutti Deck",
+  "description": "A local feasibility bridge for project-scoped Deck files",
+  "runtime": {
+    "bootstrap": "bootstrap.sh",
+    "healthcheckPath": "/healthz",
+    "profile": "node-static"
+  },
+  "cli": {
+    "manifest": "tutti.cli.json"
+  },
+  "window": {
+    "minWidth": 520,
+    "minHeight": 560
+  },
+  "launch": {
+    "mode": "workspace-open"
+  },
+  "localizationInfo": {
+    "defaultLocale": "en",
+    "additionalLocales": [
+      {
+        "locale": "zh-CN",
+        "file": "locales/zh-CN/manifest.json"
+      }
+    ]
+  },
+  "author": {
+    "name": "Tutti Deck POC"
+  },
+  "tags": ["deck", "slides", "presentation", "prototype"]
+}

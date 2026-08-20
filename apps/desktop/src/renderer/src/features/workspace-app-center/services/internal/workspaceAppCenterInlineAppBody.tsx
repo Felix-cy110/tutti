@@ -11,6 +11,7 @@ import type {
   WorkspaceAppCenterApp,
   WorkspaceAppCenterViewState
 } from "@tutti-os/workspace-app-center";
+import type { TuttiExternalWorkspaceOpenRouteIntent } from "@tutti-os/workspace-external-core/contracts";
 import { resolveWorkspaceAppStatusPresentation } from "@tutti-os/workspace-app-center/core";
 import { createAppCenterI18nRuntime } from "@tutti-os/workspace-app-center/i18n";
 import type { WorkbenchHostNodeBodyContext } from "@tutti-os/workbench-surface";
@@ -21,6 +22,7 @@ import {
   findWorkspaceApp,
   readWorkspaceAppOpenRouteIntent,
   resolveWorkspaceAppOpenUrl,
+  workspaceAppAgentInlineBrowserNodeId,
   workspaceAppInlineBrowserNodeId
 } from "./workspaceAppCenterLaunchRequest.ts";
 import {
@@ -117,6 +119,56 @@ export function WorkspaceAppCenterInlineAppBody({
         );
       })}
     </div>
+  );
+}
+
+export function WorkspaceAppCenterDirectAppBody({
+  active,
+  appCenterService,
+  appId,
+  browserFeature,
+  fallbackLabel,
+  i18n,
+  launchIntent = null,
+  surfaceId,
+  workspaceId
+}: {
+  active: boolean;
+  appCenterService: IWorkspaceAppCenterService;
+  appId: string;
+  browserFeature: BrowserNodeFeature;
+  fallbackLabel: string;
+  i18n: I18nRuntime<string>;
+  launchIntent?: TuttiExternalWorkspaceOpenRouteIntent | null;
+  surfaceId: string;
+  workspaceId: string;
+}): ReactNode {
+  const state = useSnapshot(appCenterService.store);
+  const appSnapshot = state.apps.find((candidate) => candidate.appId === appId);
+  const app = appSnapshot
+    ? (appSnapshot as unknown as WorkspaceAppCenterApp)
+    : null;
+  const activationUrl =
+    app?.launchUrl && launchIntent
+      ? resolveWorkspaceAppOpenUrl(app.launchUrl, launchIntent)
+      : null;
+
+  return (
+    <WorkspaceAppCenterInlineBrowser
+      activationUrl={activationUrl}
+      app={app}
+      appCenterCopy={createAppCenterI18nRuntime(i18n)}
+      appId={appId}
+      browserFeature={browserFeature}
+      fallbackLabel={fallbackLabel}
+      hidden={!active}
+      navigationPolicy={resolveWorkspaceAppNavigationPolicy(app)}
+      nodeId={workspaceAppAgentInlineBrowserNodeId({ appId, surfaceId })}
+      sessionPartition={workspaceAppBrowserSessionPartition({
+        appId,
+        workspaceId
+      })}
+    />
   );
 }
 

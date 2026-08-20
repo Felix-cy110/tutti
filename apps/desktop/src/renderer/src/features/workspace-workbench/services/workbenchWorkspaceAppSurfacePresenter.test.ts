@@ -7,6 +7,64 @@ import type {
 } from "@tutti-os/workbench-surface";
 import { workspaceAppCenterNodeID } from "../../workspace-app-center/services/workspaceAppCenterLaunchIds.ts";
 import { createWorkbenchWorkspaceAppSurfacePresenter } from "./workbenchWorkspaceAppSurfacePresenter.ts";
+import { registerWorkspaceAgentDeckSurface } from "./workspaceAgentDeckLaunchCoordinator.ts";
+
+test("workbench app presenter opens Tutti Deck inside the focused Agent right panel", async () => {
+  let open = false;
+  const unregister = registerWorkspaceAgentDeckSurface(
+    "workspace-1",
+    "agent-node",
+    {
+      close: () => {
+        open = false;
+      },
+      isOpen: () => open,
+      open: () => {
+        open = true;
+        return true;
+      }
+    }
+  );
+  const harness = createViewStateHarness();
+  const presenter = createWorkbenchWorkspaceAppSurfacePresenter({
+    ...harness,
+    host: createHost({
+      snapshot: {
+        nodeStack: ["agent-node"],
+        nodes: []
+      } as unknown as WorkbenchState
+    }),
+    workspaceId: "workspace-1"
+  });
+  const attempt = {
+    appId: "tutti-deck",
+    attemptId: 99,
+    workspaceId: "workspace-1"
+  };
+
+  presenter.beginOpen(attempt);
+  assert.equal(
+    await presenter.presentPrepared({
+      appId: attempt.appId,
+      attempt,
+      prepared: true,
+      workspaceId: attempt.workspaceId
+    }),
+    true
+  );
+  assert.equal(
+    presenter.isOpen({
+      appId: attempt.appId,
+      workspaceId: attempt.workspaceId
+    }),
+    true
+  );
+  assert.equal(harness.read().openAppId, null);
+
+  presenter.close({ appId: attempt.appId, workspaceId: attempt.workspaceId });
+  assert.equal(open, false);
+  unregister();
+});
 
 test("workbench app presenter opens apps as tabs in the singleton app-center node", async () => {
   const launches: unknown[] = [];
@@ -200,10 +258,12 @@ function createViewStateHarness(
 function createHost(input: {
   activations?: unknown[];
   launches?: unknown[];
+  snapshot?: WorkbenchState;
 }): WorkbenchHostHandle {
   return {
     activateNode: (...args: unknown[]) => input.activations?.push(args),
-    getSnapshot: () => ({ nodes: [] }) as unknown as WorkbenchState,
+    getSnapshot: () =>
+      input.snapshot ?? ({ nodes: [] } as unknown as WorkbenchState),
     launchNode: async (
       request: Parameters<WorkbenchHostHandle["launchNode"]>[0]
     ) => {
