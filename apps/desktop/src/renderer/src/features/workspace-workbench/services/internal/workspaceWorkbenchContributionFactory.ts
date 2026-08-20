@@ -107,7 +107,7 @@ export interface DesktopWorkbenchContributionFactory<TContext> {
 
 export function bindDesktopWorkbenchContributionFactory<TContext>(
   factory: DesktopWorkbenchContributionFactory<TContext>,
-  context: TContext
+  context: NoInfer<TContext>
 ): WorkbenchCapabilityFactoryDescriptor {
   return {
     create: () => factory.create(context),

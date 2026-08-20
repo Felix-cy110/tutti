@@ -19,6 +19,7 @@ import {
   reportWorkspaceAppOpenedFromDockEntry,
   resolveWorkspaceAppCenterLaunchRequest,
   workspaceAppCenterNodeID,
+  workspaceAppAgentInlineBrowserNodeId,
   workspaceAppDockEntryId,
   workspaceAppInlineBrowserNodeId,
   workspaceAppWebviewInstanceId,
@@ -34,6 +35,15 @@ test("workspace app node ids resolve app ids from dock, inline, and webview node
   assert.equal(
     readWorkspaceAppIdFromNodeId(workspaceAppInlineBrowserNodeId("group-chat")),
     "group-chat"
+  );
+  assert.equal(
+    readWorkspaceAppIdFromNodeId(
+      workspaceAppAgentInlineBrowserNodeId({
+        appId: "tutti-canvas",
+        surfaceId: "agent:session/1"
+      })
+    ),
+    "tutti-canvas"
   );
   assert.equal(
     readWorkspaceAppIdFromNodeId(

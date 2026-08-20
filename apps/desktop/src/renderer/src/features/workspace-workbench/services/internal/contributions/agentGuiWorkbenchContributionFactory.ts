@@ -3,6 +3,7 @@ import type {
   DesktopWorkbenchContributionFactory
 } from "../workspaceWorkbenchContributionFactory";
 import { createWorkspaceAgentGuiContribution } from "../workspaceAgentGuiContribution.ts";
+import { resolveWorkspaceAppBrowserFeature } from "./appCenterWorkbenchContributionFactory.ts";
 
 type AgentGuiWorkbenchContributionContext = Pick<
   DesktopWorkbenchContributionContext,
@@ -12,6 +13,8 @@ type AgentGuiWorkbenchContributionContext = Pick<
   | "agentsService"
   | "appCenterService"
   | "appI18n"
+  | "browserApi"
+  | "browserService"
   | "comingSoonAgentProviders"
   | "computerUseApi"
   | "defaultAgentProvider"
@@ -69,7 +72,17 @@ export const agentGuiWorkbenchContributionFactory: DesktopWorkbenchContributionF
         workspaceFilePreviewSurfaceHost:
           context.workspaceFilePreviewSurfaceHost,
         workspaceUserProjectService: context.workspaceUserProjectService,
-        workspaceId: context.workspaceId
+        workspaceId: context.workspaceId,
+        workspaceAppBrowserFeature: context.browserApi
+          ? resolveWorkspaceAppBrowserFeature({
+              appCenterService: context.appCenterService,
+              browserApi: context.browserApi,
+              browserService: context.browserService,
+              i18n: context.appI18n,
+              runtimeApi: context.runtimeApi,
+              workspaceId: context.workspaceId
+            })
+          : undefined
       });
     }
   };

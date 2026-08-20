@@ -53,6 +53,7 @@ import {
   resolveAgentExternalPromptEntries
 } from "./model/agentExternalPromptEntries";
 import { useComposerInputHistory } from "./composer/useComposerInputHistory";
+import { resolveSubmittedTuttiCanvasLaunch } from "./composer/resolveComposerWorkspaceAppLaunch";
 
 export { formatSlashStatusTokenCount };
 
@@ -282,6 +283,13 @@ export function AgentComposer(props: AgentComposerProps): React.JSX.Element {
     displayPrompt,
     options
   ) => {
+    const canvasLaunch = resolveSubmittedTuttiCanvasLaunch({
+      content,
+      displayPrompt
+    });
+    if (canvasLaunch) {
+      onLinkAction?.(canvasLaunch);
+    }
     onSubmit(
       content,
       displayPrompt,

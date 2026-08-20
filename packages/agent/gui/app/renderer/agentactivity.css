@@ -5535,6 +5535,10 @@ aside.workspace-agents-status-panel
   -webkit-app-region: no-drag;
 }
 
+.agent-gui-workbench-header__tool-sidebar-portal:empty {
+  display: none;
+}
+
 /* The collapsed primary row already supplies the header's right inset. Avoid
    stacking the accessory inset when actions move out of the detail column. */
 .agent-gui-workbench-header[data-agent-gui-workbench-header-collapsed="true"]

@@ -16,5 +16,13 @@ thread id, timestamp, or random UUID as a canvas name.
    absolute output path. Do not claim completion until the command returns the
    inserted shape id and asset path.
 
-The open Workspace App watches CLI changes and reloads the active canvas after
-`canvas open` or `canvas insert-image`.
+Only use the advertised `tutti canvas` commands to read or change canvas state.
+Do not inspect the Canvas checkout, unzip or rewrite a `.canvas` file, or copy a
+snapshot from another canvas. A newly created blank canvas supports direct image
+insertion. If a Canvas CLI command fails, report its exact error instead of
+repairing the implementation or archive from the Agent session.
+
+The open Workspace App watches CLI changes and opens or activates one
+right-panel tab per exact `canvasFile` after `canvas open` or
+`canvas insert-image`. A tab label is `<canvasName>.canvas`; closing it does not
+delete the file.

@@ -28,6 +28,10 @@ import { handleStandaloneAgentGuiLaunch } from "../services/standaloneAgentGuiLa
 import type { StandaloneAgentIssueManagerOpenRequest } from "../services/standaloneAgentIssueManagerLaunch.ts";
 import { createStandaloneAgentWorkspaceIssueManagerPresenter } from "../services/standaloneAgentWorkspaceIssueManagerPresenter.ts";
 import {
+  openWorkspaceAppFromStandaloneAgent,
+  type StandaloneAgentWorkspaceAppOpenRequest
+} from "../services/standaloneAgentWorkspaceAppSurfacePresenter.ts";
+import {
   registerWorkspaceIssueManagerLaunchPresenter,
   requestWorkspaceIssueManagerLaunch
 } from "../services/workspaceIssueManagerLaunchCoordinator.ts";
@@ -40,6 +44,7 @@ interface StandaloneAgentLaunchRoutingInput {
   headerProvider: DesktopAgentGUIProvider;
   homeDirectory: string;
   hostWindowApi: Pick<DesktopHostWindowApi, "openAgentWindow">;
+  ensureWorkspaceAppPolling(): void;
   openExternalUrl(url: string): Promise<void>;
   openFileInSidebar(
     path: string,
@@ -61,6 +66,7 @@ export function useStandaloneAgentLaunchRouting({
   headerProvider,
   homeDirectory,
   hostWindowApi,
+  ensureWorkspaceAppPolling,
   openExternalUrl,
   openFileInSidebar,
   runtimeApi,
@@ -78,10 +84,14 @@ export function useStandaloneAgentLaunchRouting({
     provider: string;
   }): void;
   issueManagerOpenRequest: StandaloneAgentIssueManagerOpenRequest | null;
+  workspaceAppOpenRequest: StandaloneAgentWorkspaceAppOpenRequest | null;
 } {
   const activationSequenceRef = useRef(1);
+  const workspaceAppOpenSequenceRef = useRef(0);
   const [issueManagerOpenRequest, setIssueManagerOpenRequest] =
     useState<StandaloneAgentIssueManagerOpenRequest | null>(null);
+  const [workspaceAppOpenRequest, setWorkspaceAppOpenRequest] =
+    useState<StandaloneAgentWorkspaceAppOpenRequest | null>(null);
   const issueManagerPresenter = useMemo(
     () =>
       createStandaloneAgentWorkspaceIssueManagerPresenter({
@@ -167,16 +177,18 @@ export function useStandaloneAgentLaunchRouting({
         launchWorkspaceIssueManager: requestWorkspaceIssueManagerLaunch,
         launchWorkspaceFiles: ({ path, validateExists }) =>
           openFileInSidebar(path, validateExists),
-        launchWorkspaceApp: async ({
-          appId,
-          workspaceId: targetWorkspaceId
-        }) => {
-          await workspaceAppCenterService.openApp({
+        launchWorkspaceApp: async ({ appId, workspaceId: targetWorkspaceId }) =>
+          await openWorkspaceAppFromStandaloneAgent({
+            appCenterService: workspaceAppCenterService,
             appId,
+            ensureWorkspaceAppPolling,
+            revealInSidebar: (revealedAppId) =>
+              setWorkspaceAppOpenRequest({
+                appId: revealedAppId,
+                requestID: `standalone-agent-workspace-app-${++workspaceAppOpenSequenceRef.current}`
+              }),
             workspaceId: targetWorkspaceId
-          });
-          return true;
-        },
+          }),
         launchGroupChat: () => false,
         openBrowserUrl: requestWorkspaceBrowserLaunch,
         openExternalUrl,
@@ -186,6 +198,7 @@ export function useStandaloneAgentLaunchRouting({
     },
     [
       homeDirectory,
+      ensureWorkspaceAppPolling,
       openFileInSidebar,
       openExternalUrl,
       runtimeApi,
@@ -198,6 +211,7 @@ export function useStandaloneAgentLaunchRouting({
   return {
     handleLinkAction,
     handleOpenMessageCenterChat,
-    issueManagerOpenRequest
+    issueManagerOpenRequest,
+    workspaceAppOpenRequest
   };
 }

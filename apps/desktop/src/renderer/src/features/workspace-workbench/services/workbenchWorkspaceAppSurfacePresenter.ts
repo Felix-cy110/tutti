@@ -6,19 +6,18 @@ import type {
 } from "../../workspace-app-center/services/workspaceAppSurfaceHost.interface.ts";
 import { workspaceAppCenterNodeID } from "../../workspace-app-center/services/workspaceAppCenterLaunchIds.ts";
 import {
-  workspaceAppWebviewInstanceId,
-  workspaceAppWebviewTypeID
-} from "../../workspace-app-center/services/workspaceAppCenterLaunchIds.ts";
-import {
   closeWorkspaceAppTab,
   openWorkspaceAppTab,
   readWorkspaceAppTabIds
 } from "../../workspace-app-center/services/workspaceAppCenterTabs.ts";
 import { workspaceOnboardingAppId } from "./workspaceOnboarding.ts";
+import {
+  closeWorkspaceAgentCanvasSurfaces,
+  isWorkspaceAgentCanvasSurfaceOpen,
+  openWorkspaceAgentCanvasSurface
+} from "./workspaceAgentCanvasLaunchCoordinator.ts";
 
 const tuttiCanvasAppId = "tutti-canvas";
-const tuttiCanvasInstanceId = workspaceAppWebviewInstanceId(tuttiCanvasAppId);
-const tuttiCanvasNodeId = `${workspaceAppWebviewTypeID}:${tuttiCanvasInstanceId}`;
 
 export function createWorkbenchWorkspaceAppSurfacePresenter(input: {
   getViewState(workspaceId: string): WorkspaceAppCenterViewState;
@@ -82,7 +81,7 @@ export function createWorkbenchWorkspaceAppSurfacePresenter(input: {
         return;
       }
       if (request.appId === tuttiCanvasAppId) {
-        input.host.closeNode(tuttiCanvasNodeId);
+        closeWorkspaceAgentCanvasSurfaces(input.workspaceId);
         return;
       }
       input.setViewState({
@@ -98,9 +97,7 @@ export function createWorkbenchWorkspaceAppSurfacePresenter(input: {
         request.workspaceId === input.workspaceId &&
         request.appId === tuttiCanvasAppId
       ) {
-        return input.host
-          .getSnapshot()
-          .nodes.some((node) => node.id === tuttiCanvasNodeId);
+        return isWorkspaceAgentCanvasSurfaceOpen(input.workspaceId);
       }
       return (
         request.workspaceId === input.workspaceId &&
@@ -115,18 +112,12 @@ export function createWorkbenchWorkspaceAppSurfacePresenter(input: {
         request.workspaceId === input.workspaceId &&
         directCanvasAttemptIds.delete(request.attempt.attemptId)
       ) {
-        return Boolean(
-          await input.host.launchNode({
-            payload: {
-              appId: request.appId,
-              ...(request.intent ? { intent: request.intent } : {}),
-              prepared: true,
-              prevStatus: request.prevStatus
-            },
-            reason: "host",
-            typeId: workspaceAppWebviewTypeID
-          })
-        );
+        const focusedNodeId =
+          input.host.getSnapshot().nodeStack?.at(-1) ?? null;
+        return openWorkspaceAgentCanvasSurface({
+          nodeId: focusedNodeId,
+          workspaceId: input.workspaceId
+        });
       }
       if (
         request.workspaceId !== input.workspaceId ||

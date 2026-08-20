@@ -61,7 +61,7 @@ export const appCenterWorkbenchContributionFactory: DesktopWorkbenchContribution
     }
   };
 
-function resolveWorkspaceAppBrowserFeature(input: {
+export function resolveWorkspaceAppBrowserFeature(input: {
   appCenterService: IWorkspaceAppCenterService;
   browserApi: DesktopBrowserApi;
   browserService: WorkspaceBrowserService;

@@ -84,6 +84,11 @@ describe("AgentGuiWorkbenchHeader conversation identity", () => {
       header?.style.getPropertyValue("--agent-gui-tool-sidebar-layout-width")
     ).toBe("432px");
     expect(screen.getByText("Host-owned tools")).toBeTruthy();
+    expect(
+      header?.querySelector(
+        "[data-agent-gui-workbench-tool-sidebar-portal='true']"
+      )
+    ).toBeTruthy();
   });
 
   it.each([false, true])(

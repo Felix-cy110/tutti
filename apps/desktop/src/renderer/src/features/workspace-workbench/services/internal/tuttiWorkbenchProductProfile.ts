@@ -74,6 +74,8 @@ export function createTuttiWorkbenchProductProfile(
           "agentsService",
           "appCenterService",
           "appI18n",
+          "browserApi",
+          "browserService",
           "comingSoonAgentProviders",
           "computerUseApi",
           "defaultAgentProvider",

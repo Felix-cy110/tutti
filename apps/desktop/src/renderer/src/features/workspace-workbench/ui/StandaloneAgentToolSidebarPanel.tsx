@@ -10,6 +10,11 @@ import type { WorkspaceAgentActivityService } from "@renderer/features/workspace
 import type { DesktopBrowserApi } from "@preload/types";
 import type { useTranslation } from "@renderer/i18n";
 import type { StandaloneAgentIssueManagerOpenRequest } from "../services/standaloneAgentIssueManagerLaunch.ts";
+import {
+  resolveTuttiCanvasOpenRouteIntent,
+  tuttiCanvasWorkspaceAppId,
+  type TuttiCanvasTarget
+} from "../services/tuttiCanvasTarget.ts";
 import { StandaloneAgentBrowserToolPanel } from "./StandaloneAgentBrowserToolPanel.tsx";
 import { StandaloneAgentToolLoadingState } from "./StandaloneAgentToolLoadingState.tsx";
 
@@ -65,6 +70,7 @@ export function StandaloneAgentToolSidebarPanel({
   appI18n,
   activityService,
   browserApi,
+  canvasTarget,
   contributions,
   fileOpenRequest,
   instanceId,
@@ -85,6 +91,7 @@ export function StandaloneAgentToolSidebarPanel({
   appI18n: I18nRuntime<string>;
   activityService: WorkspaceAgentActivityService;
   browserApi?: DesktopBrowserApi;
+  canvasTarget: TuttiCanvasTarget | null;
   contributions: readonly WorkbenchContribution[] | undefined;
   fileOpenRequest: StandaloneAgentFileOpenRequest | null;
   instanceId: string;
@@ -161,8 +168,14 @@ export function StandaloneAgentToolSidebarPanel({
       >
         <LazyStandaloneAgentAppViewerToolPanel
           active={active}
-          appId={tab.resourceId ?? "tutti-canvas"}
+          appId={tuttiCanvasWorkspaceAppId}
           contributions={contributions}
+          launchIntent={
+            canvasTarget
+              ? resolveTuttiCanvasOpenRouteIntent(canvasTarget)
+              : null
+          }
+          resourceKey={canvasTarget?.canvasFile ?? null}
           unavailableLabel={i18n.t(
             "workspace.agentGui.toolSidebar.unavailable",
             { tool: locale === "zh-CN" ? "画布" : "Canvas" }

@@ -34,6 +34,16 @@ import {
 } from "@renderer/features/workspace-app-center";
 import { useTranslation } from "@renderer/i18n";
 import type { StandaloneAgentIssueManagerOpenRequest } from "../services/standaloneAgentIssueManagerLaunch.ts";
+import type { StandaloneAgentWorkspaceAppOpenRequest } from "../services/standaloneAgentWorkspaceAppSurfacePresenter.ts";
+import {
+  readTuttiCanvasTargets,
+  resolveTuttiCanvasFallbackTabLabel,
+  resolveTuttiCanvasTabLabel,
+  resolveTuttiCanvasTargetsUrl,
+  resolveWorkspaceAppToolPanelId,
+  tuttiCanvasWorkspaceAppId,
+  type TuttiCanvasTarget
+} from "../services/tuttiCanvasTarget.ts";
 import { StandaloneAgentDecisionNotifications } from "./StandaloneAgentDecisionNotifications.tsx";
 import {
   StandaloneAgentToolSidebarPanel,
@@ -48,7 +58,7 @@ import { useExternalStoreValue } from "./useExternalStoreValue.ts";
 export type { StandaloneAgentFileOpenRequest } from "./StandaloneAgentToolSidebarPanel.tsx";
 
 const browserControllerReadyTimeoutMs = 8_000;
-const tuttiCanvasAppId = "tutti-canvas";
+const tuttiCanvasTargetPollIntervalMs = 500;
 
 interface StandaloneAgentToolSidebarProps {
   activityService: WorkspaceAgentActivityService;
@@ -59,6 +69,7 @@ interface StandaloneAgentToolSidebarProps {
   contributions: readonly WorkbenchContribution[] | undefined;
   fileOpenRequest?: StandaloneAgentFileOpenRequest | null;
   issueManagerOpenRequest?: StandaloneAgentIssueManagerOpenRequest | null;
+  workspaceAppOpenRequest?: StandaloneAgentWorkspaceAppOpenRequest | null;
   mainContentMinWidthPx?: number;
   renderHeader: (layout: AgentToolSidebarHeaderLayout) => ReactNode;
   onOpenMessageCenterChat: (input: {
@@ -87,6 +98,7 @@ export function StandaloneAgentToolSidebar({
   contributions,
   fileOpenRequest = null,
   issueManagerOpenRequest = null,
+  workspaceAppOpenRequest = null,
   mainContentMinWidthPx,
   renderHeader,
   onOpenMessageCenterChat,
@@ -110,7 +122,14 @@ export function StandaloneAgentToolSidebar({
   mainContentMinWidthRef.current = mainContentMinWidthPx ?? 0;
   const [activePanel, setActivePanel] = useState<AgentToolPanelId | null>(null);
   const [mountedTabs, setMountedTabs] = useState<readonly AgentToolTab[]>([]);
+  const mountedTabsRef = useRef(mountedTabs);
+  mountedTabsRef.current = mountedTabs;
+  const [canvasTargetsByFile, setCanvasTargetsByFile] = useState<
+    ReadonlyMap<string, TuttiCanvasTarget>
+  >(() => new Map());
+  const handledCanvasRevisionByFileRef = useRef(new Map<string, string>());
   const lastHandledAppOpenIdRef = useRef<string | null>(null);
+  const lastHandledWorkspaceAppOpenRequestRef = useRef<string | null>(null);
   const lastHandledFileOpenRequestRef = useRef<string | null>(null);
   const fileOpenRequestTabIdRef = useRef<string | null>(null);
   const lastHandledIssueManagerOpenRequestRef = useRef<string | null>(null);
@@ -430,11 +449,108 @@ export function StandaloneAgentToolSidebar({
     }
     if (lastHandledAppOpenIdRef.current === appId) return;
     lastHandledAppOpenIdRef.current = appId;
-    sidebarRef.current?.openPanel(
-      appId === tuttiCanvasAppId ? "canvas" : "apps",
-      appId
-    );
+    sidebarRef.current?.openPanel(resolveWorkspaceAppToolPanelId(appId), appId);
   }, [appOpenId]);
+  useEffect(() => {
+    if (
+      !workspaceAppOpenRequest ||
+      lastHandledWorkspaceAppOpenRequestRef.current ===
+        workspaceAppOpenRequest.requestID
+    ) {
+      return;
+    }
+    const tabId = sidebarRef.current?.openPanel(
+      resolveWorkspaceAppToolPanelId(workspaceAppOpenRequest.appId),
+      workspaceAppOpenRequest.appId
+    );
+    if (!tabId) return;
+    lastHandledWorkspaceAppOpenRequestRef.current =
+      workspaceAppOpenRequest.requestID;
+  }, [workspaceAppOpenRequest]);
+  const tuttiCanvasApp = appCenterState.apps.find(
+    (app) => app.appId === tuttiCanvasWorkspaceAppId
+  );
+  const tuttiCanvasLaunchUrl = tuttiCanvasApp?.launchUrl?.trim() ?? "";
+  const tuttiCanvasRuntimeStatus = tuttiCanvasApp?.runtimeStatus ?? null;
+  useEffect(() => {
+    if (tuttiCanvasRuntimeStatus !== "running") return;
+    const targetsUrl = resolveTuttiCanvasTargetsUrl(tuttiCanvasLaunchUrl);
+    if (!targetsUrl) return;
+
+    let cancelled = false;
+    let requestInFlight = false;
+    let closeGenericTabTimer: number | undefined;
+    const pollTargets = async (): Promise<void> => {
+      if (cancelled || requestInFlight) return;
+      requestInFlight = true;
+      try {
+        const response = await fetch(targetsUrl, { cache: "no-store" });
+        if (!response.ok || cancelled) return;
+        const targets = readTuttiCanvasTargets(await response.json());
+        const genericCanvasTabOpen = mountedTabsRef.current.some(
+          (tab) =>
+            tab.panel === "canvas" &&
+            tab.resourceId === tuttiCanvasWorkspaceAppId
+        );
+        const revisionChangedTargets = targets.filter(
+          (target) =>
+            handledCanvasRevisionByFileRef.current.get(target.canvasFile) !==
+            target.revision
+        );
+        const missingTargets = genericCanvasTabOpen
+          ? targets.filter(
+              (target) =>
+                !mountedTabsRef.current.some(
+                  (tab) =>
+                    tab.panel === "canvas" &&
+                    tab.resourceId === target.canvasFile
+                )
+            )
+          : [];
+        const target =
+          revisionChangedTargets[0] ?? missingTargets.at(-1) ?? null;
+        if (!target || cancelled) return;
+
+        setCanvasTargetsByFile((current) => {
+          const next = new Map(current);
+          next.set(target.canvasFile, target);
+          return next;
+        });
+        handledCanvasRevisionByFileRef.current.set(
+          target.canvasFile,
+          target.revision
+        );
+        sidebarRef.current?.openPanel("canvas", target.canvasFile);
+
+        window.clearTimeout(closeGenericTabTimer);
+        closeGenericTabTimer = window.setTimeout(() => {
+          const genericTab = mountedTabsRef.current.find(
+            (tab) =>
+              tab.panel === "canvas" &&
+              tab.resourceId === tuttiCanvasWorkspaceAppId
+          );
+          if (genericTab) {
+            sidebarRef.current?.closeTab(genericTab.id);
+          }
+        }, 0);
+      } catch {
+        // The Workspace App may be restarting between catalog updates.
+      } finally {
+        requestInFlight = false;
+      }
+    };
+
+    void pollTargets();
+    const timer = window.setInterval(
+      () => void pollTargets(),
+      tuttiCanvasTargetPollIntervalMs
+    );
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+      window.clearTimeout(closeGenericTabTimer);
+    };
+  }, [tuttiCanvasLaunchUrl, tuttiCanvasRuntimeStatus]);
   useEffect(() => {
     if (
       !fileOpenRequest ||
@@ -466,9 +582,15 @@ export function StandaloneAgentToolSidebar({
     );
     for (const tab of mountedTabs) {
       if (
-        (tab.panel === "apps" || tab.panel === "canvas") &&
+        tab.panel === "apps" &&
         tab.resourceId &&
         !availableAppIds.has(tab.resourceId)
+      ) {
+        sidebarRef.current?.closeTab(tab.id);
+      }
+      if (
+        tab.panel === "canvas" &&
+        !availableAppIds.has(tuttiCanvasWorkspaceAppId)
       ) {
         sidebarRef.current?.closeTab(tab.id);
       }
@@ -483,8 +605,14 @@ export function StandaloneAgentToolSidebar({
   );
   const handleTabClose = useCallback(
     (tab: AgentToolTab) => {
-      if ((tab.panel !== "apps" && tab.panel !== "canvas") || !tab.resourceId)
+      if (!tab.resourceId) return;
+      if (
+        tab.panel === "canvas" &&
+        tab.resourceId !== tuttiCanvasWorkspaceAppId
+      ) {
         return;
+      }
+      if (tab.panel !== "apps" && tab.panel !== "canvas") return;
       if (lastHandledAppOpenIdRef.current === tab.resourceId) {
         lastHandledAppOpenIdRef.current = null;
       }
@@ -501,20 +629,33 @@ export function StandaloneAgentToolSidebar({
   );
   const resolveTabLabel = useCallback(
     (tab: AgentToolTab, defaultLabel: string) => {
-      if ((tab.panel !== "apps" && tab.panel !== "canvas") || !tab.resourceId)
-        return defaultLabel;
+      if (!tab.resourceId) return defaultLabel;
+      if (
+        tab.panel === "canvas" &&
+        tab.resourceId !== tuttiCanvasWorkspaceAppId
+      ) {
+        const target = canvasTargetsByFile.get(tab.resourceId);
+        return target
+          ? resolveTuttiCanvasTabLabel(target)
+          : resolveTuttiCanvasFallbackTabLabel(tab.resourceId);
+      }
+      if (tab.panel !== "apps" && tab.panel !== "canvas") return defaultLabel;
       const app = appCenterState.apps.find(
         (candidate) => candidate.appId === tab.resourceId
       );
       return app ? resolveWorkspaceAppDisplayName(app, locale) : tab.resourceId;
     },
-    [appCenterState.apps, locale]
+    [appCenterState.apps, canvasTargetsByFile, locale]
   );
   const renderTabIcon = useCallback(
     (tab: AgentToolTab): ReactNode => {
       if ((tab.panel === "apps" || tab.panel === "canvas") && tab.resourceId) {
         const app = appCenterState.apps.find(
-          (candidate) => candidate.appId === tab.resourceId
+          (candidate) =>
+            candidate.appId ===
+            (tab.panel === "canvas"
+              ? tuttiCanvasWorkspaceAppId
+              : tab.resourceId)
         );
         if (app?.iconUrl) {
           return (
@@ -577,6 +718,11 @@ export function StandaloneAgentToolSidebar({
             appI18n={appI18n}
             activityService={activityService}
             browserApi={browserApi}
+            canvasTarget={
+              tab.panel === "canvas" && tab.resourceId
+                ? (canvasTargetsByFile.get(tab.resourceId) ?? null)
+                : null
+            }
             contributions={contributions}
             fileOpenRequest={
               fileOpenRequestTabIdRef.current === tab.id

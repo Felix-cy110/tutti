@@ -5,12 +5,9 @@ import type {
   WorkbenchHostHandle,
   WorkbenchState
 } from "@tutti-os/workbench-surface";
-import {
-  workspaceAppCenterNodeID,
-  workspaceAppWebviewInstanceId,
-  workspaceAppWebviewTypeID
-} from "../../workspace-app-center/services/workspaceAppCenterLaunchIds.ts";
+import { workspaceAppCenterNodeID } from "../../workspace-app-center/services/workspaceAppCenterLaunchIds.ts";
 import { createWorkbenchWorkspaceAppSurfacePresenter } from "./workbenchWorkspaceAppSurfacePresenter.ts";
+import { registerWorkspaceAgentCanvasSurface } from "./workspaceAgentCanvasLaunchCoordinator.ts";
 
 test("workbench app presenter opens apps as tabs in the singleton app-center node", async () => {
   const launches: unknown[] = [];
@@ -49,14 +46,13 @@ test("workbench app presenter opens apps as tabs in the singleton app-center nod
   ]);
 });
 
-test("workbench app presenter opens Tutti Canvas as a dedicated webview node", async () => {
+test("workbench app presenter does not open Tutti Canvas outside an Agent sidebar", async () => {
   const launches: unknown[] = [];
   const closedNodeIds: string[] = [];
-  const canvasNodeId = `${workspaceAppWebviewTypeID}:${workspaceAppWebviewInstanceId("tutti-canvas")}`;
   const harness = createViewStateHarness();
   const presenter = createWorkbenchWorkspaceAppSurfacePresenter({
     ...harness,
-    host: createHost({ closedNodeIds, launches, nodeIds: [canvasNodeId] }),
+    host: createHost({ closedNodeIds, launches }),
     workspaceId: "workspace-1"
   });
   const attempt = {
@@ -74,29 +70,78 @@ test("workbench app presenter opens Tutti Canvas as a dedicated webview node", a
     workspaceId: "workspace-1"
   });
 
-  assert.equal(opened, true);
+  assert.equal(opened, false);
   assert.deepEqual(harness.read(), {
     activeAppTab: "recommended",
     openAppId: null,
     openAppIds: []
   });
-  assert.deepEqual(launches, [
-    {
-      payload: {
-        appId: "tutti-canvas",
-        prepared: true,
-        prevStatus: "idle"
-      },
-      reason: "host",
-      typeId: workspaceAppWebviewTypeID
-    }
-  ]);
+  assert.deepEqual(launches, []);
   assert.equal(
     presenter.isOpen({ appId: "tutti-canvas", workspaceId: "workspace-1" }),
-    true
+    false
   );
   presenter.close({ appId: "tutti-canvas", workspaceId: "workspace-1" });
-  assert.deepEqual(closedNodeIds, [canvasNodeId]);
+  assert.deepEqual(closedNodeIds, []);
+});
+
+test("workbench app presenter opens Tutti Canvas in the focused Agent sidebar", async () => {
+  const launches: unknown[] = [];
+  let canvasOpen = false;
+  const dispose = registerWorkspaceAgentCanvasSurface(
+    "workspace-agent-canvas",
+    "agent-node",
+    {
+      close: () => {
+        canvasOpen = false;
+      },
+      isOpen: () => canvasOpen,
+      open: () => {
+        canvasOpen = true;
+        return true;
+      }
+    }
+  );
+  const harness = createViewStateHarness();
+  const presenter = createWorkbenchWorkspaceAppSurfacePresenter({
+    ...harness,
+    host: createHost({ launches, nodeStack: ["agent-node"] }),
+    workspaceId: "workspace-agent-canvas"
+  });
+  const attempt = {
+    appId: "tutti-canvas",
+    attemptId: 11,
+    workspaceId: "workspace-agent-canvas"
+  };
+
+  try {
+    presenter.beginOpen(attempt);
+    const opened = await presenter.presentPrepared({
+      appId: "tutti-canvas",
+      attempt,
+      prepared: true,
+      prevStatus: "idle",
+      workspaceId: "workspace-agent-canvas"
+    });
+
+    assert.equal(opened, true);
+    assert.equal(canvasOpen, true);
+    assert.deepEqual(launches, []);
+    assert.equal(
+      presenter.isOpen({
+        appId: "tutti-canvas",
+        workspaceId: "workspace-agent-canvas"
+      }),
+      true
+    );
+    presenter.close({
+      appId: "tutti-canvas",
+      workspaceId: "workspace-agent-canvas"
+    });
+    assert.equal(canvasOpen, false);
+  } finally {
+    dispose();
+  }
 });
 
 test("workbench app presenter selects an existing tab and forwards route intent", async () => {
@@ -256,13 +301,15 @@ function createHost(input: {
   closedNodeIds?: string[];
   launches?: unknown[];
   nodeIds?: string[];
+  nodeStack?: string[];
 }): WorkbenchHostHandle {
   return {
     activateNode: (...args: unknown[]) => input.activations?.push(args),
     closeNode: (nodeId: string) => input.closedNodeIds?.push(nodeId),
     getSnapshot: () =>
       ({
-        nodes: (input.nodeIds ?? []).map((id) => ({ id }))
+        nodes: (input.nodeIds ?? []).map((id) => ({ id })),
+        nodeStack: input.nodeStack ?? []
       }) as unknown as WorkbenchState,
     launchNode: async (
       request: Parameters<WorkbenchHostHandle["launchNode"]>[0]

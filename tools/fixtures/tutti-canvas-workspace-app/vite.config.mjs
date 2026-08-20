@@ -16,7 +16,9 @@ const DEFAULT_PROJECT_DIR = "/Users/chenyang/project/tutti";
 const MAX_REQUEST_BYTES = 64 * 1024 * 1024;
 const APP_DIR = path.dirname(fileURLToPath(import.meta.url));
 
-let activeTarget = null;
+const activeTargets = new Map();
+let latestTarget = null;
+let activationSequence = 0;
 const canvasContexts = new Map();
 
 function canvasKey(target) {
@@ -24,11 +26,15 @@ function canvasKey(target) {
 }
 
 function activateTarget(target, focusShapeId = null) {
-  activeTarget = {
+  activationSequence += 1;
+  const activeTarget = {
     ...target,
+    activationSequence,
     revision: randomUUID(),
     focusShapeId
   };
+  activeTargets.set(canvasKey(activeTarget), activeTarget);
+  latestTarget = activeTarget;
   return activeTarget;
 }
 
@@ -131,7 +137,17 @@ async function handleCLI(pathname, request, response) {
     const activated = activateTarget(target);
     writeJSON(response, 200, {
       kind: "json",
-      value: { ...state, revision: activated.revision }
+      value: {
+        version: state.version,
+        projectDir: state.projectDir,
+        canvasRoot: state.canvasRoot,
+        canvasName: state.canvasName,
+        canvasFile: state.canvasFile,
+        container: state.container,
+        storage: state.storage,
+        updatedAt: state.updatedAt,
+        revision: activated.revision
+      }
     });
     return;
   }
@@ -183,8 +199,22 @@ async function handleCLI(pathname, request, response) {
 }
 
 async function handleAPI(pathname, url, request, response) {
+  if (pathname === "/api/targets" && request.method === "GET") {
+    writeJSON(response, 200, {
+      targets: [...activeTargets.values()].sort(
+        (left, right) => left.activationSequence - right.activationSequence
+      )
+    });
+    return;
+  }
+
   if (pathname === "/api/target" && request.method === "GET") {
-    writeJSON(response, 200, { target: activeTarget });
+    const canvasFile = url.searchParams.get("canvasFile")?.trim() ?? "";
+    writeJSON(response, 200, {
+      target: canvasFile
+        ? (activeTargets.get(canvasFile) ?? null)
+        : latestTarget
+    });
     return;
   }
 
@@ -262,6 +292,9 @@ function canvasPOCServer() {
       server.middlewares.use(async (request, response, next) => {
         const url = new URL(request.url ?? "/", "http://127.0.0.1");
         try {
+          if (url.pathname === "/api/targets") {
+            response.setHeader("access-control-allow-origin", "*");
+          }
           if (url.pathname === "/healthz") {
             response.statusCode = 204;
             response.end();

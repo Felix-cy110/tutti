@@ -6,6 +6,7 @@ import {
   type WorkbenchHostNodeData,
   type WorkbenchNode
 } from "@tutti-os/workbench-surface";
+import type { TuttiExternalWorkspaceOpenRouteIntent } from "@tutti-os/workspace-external-core/contracts";
 import {
   findWorkspaceApp,
   resolveWorkspaceAppDisplayName,
@@ -21,12 +22,16 @@ export function StandaloneAgentAppViewerToolPanel({
   active,
   appId,
   contributions,
+  launchIntent = null,
+  resourceKey = null,
   unavailableLabel,
   workspaceId
 }: {
   active: boolean;
   appId: string;
   contributions: readonly WorkbenchContribution[] | undefined;
+  launchIntent?: TuttiExternalWorkspaceOpenRouteIntent | null;
+  resourceKey?: string | null;
   unavailableLabel: string;
   workspaceId: string;
 }): ReactNode {
@@ -47,10 +52,15 @@ export function StandaloneAgentAppViewerToolPanel({
   }
 
   const instanceId = workspaceAppWebviewInstanceId(appId);
-  const nodeId = createWorkbenchHostLaunchedNodeId({
+  const baseNodeId = createWorkbenchHostLaunchedNodeId({
     instanceId,
     typeId: workspaceAppWebviewTypeID
   });
+  const resourceSuffix = resourceKey
+    ? `:${encodeURIComponent(resourceKey)}`
+    : "";
+  const nodeId = `${baseNodeId}${resourceSuffix}`;
+  const instanceKey = `${instanceId}${resourceSuffix}`;
   const title = app
     ? resolveWorkspaceAppDisplayName(app)
     : resolved.definition.title;
@@ -58,7 +68,7 @@ export function StandaloneAgentAppViewerToolPanel({
     data: {
       dockEntryId: workspaceAppDockEntryId(appId),
       instanceId,
-      instanceKey: instanceId,
+      instanceKey,
       typeId: workspaceAppWebviewTypeID
     },
     displayMode: "fullscreen",
@@ -71,13 +81,23 @@ export function StandaloneAgentAppViewerToolPanel({
   };
   const lookup = {
     instanceId,
-    instanceKey: instanceId,
+    instanceKey,
     nodeId,
     typeId: workspaceAppWebviewTypeID,
     workspaceId
   };
   const context: WorkbenchHostNodeBodyContext = {
-    activation: null,
+    activation: launchIntent
+      ? {
+          payload: {
+            appId,
+            intent: launchIntent,
+            title
+          },
+          sequence: 1,
+          type: "workspace-app:open"
+        }
+      : null,
     displayMode: node.displayMode,
     externalNodeState:
       resolved.contribution.externalStateSource?.getNodeState(lookup) ?? null,
@@ -88,7 +108,7 @@ export function StandaloneAgentAppViewerToolPanel({
     focus: () => undefined,
     host: directHost.host,
     instanceId,
-    instanceKey: instanceId,
+    instanceKey,
     isDragging: false,
     isFocused: active,
     isResizing: false,

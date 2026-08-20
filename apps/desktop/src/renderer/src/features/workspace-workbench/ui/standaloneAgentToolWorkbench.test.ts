@@ -12,6 +12,7 @@ import {
   createStandaloneAgentToolSnapshotRepository,
   resolveStandaloneAgentToolContribution
 } from "./standaloneAgentToolWorkbench.ts";
+import { resolveWorkspaceAppToolPanelId } from "../services/tuttiCanvasTarget.ts";
 
 const standaloneAgentToolSidebarPanelSource = readFileSync(
   new URL("./StandaloneAgentToolSidebarPanel.tsx", import.meta.url),
@@ -59,15 +60,9 @@ test("standalone Agent browser automation honors the requested reveal mode", () 
   );
 });
 
-test("standalone Agent routes Tutti Canvas into its dedicated right-side panel", () => {
-  assert.match(
-    standaloneAgentToolSidebarSource,
-    /appId === tuttiCanvasAppId \? "canvas" : "apps"/
-  );
-  assert.match(
-    standaloneAgentToolSidebarPanelSource,
-    /if \(panel === "canvas"\)[\s\S]*?<LazyStandaloneAgentAppViewerToolPanel/
-  );
+test("standalone Agent routes only Tutti Canvas into its dedicated panel", () => {
+  assert.equal(resolveWorkspaceAppToolPanelId("tutti-canvas"), "canvas");
+  assert.equal(resolveWorkspaceAppToolPanelId("documents"), "apps");
 });
 
 test("standalone Agent terminal contribution keeps the real renderer and opens fullscreen without a dock", async () => {

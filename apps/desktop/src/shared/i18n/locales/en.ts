@@ -248,6 +248,7 @@ export const en = {
       toolSidebar: {
         apps: "Apps",
         browser: "Browser",
+        canvas: "Canvas",
         close: "Close",
         closeRightPanel: "Close right panel",
         expandPanel: "Expand panel",

@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import type { Editor, TLShapeId, TLStoreSnapshot } from "tldraw";
 import { TuttiCanvas } from "/Users/chenyang/project/tutti-canvas-ui/src/renderer/src/App";
 
 type CanvasTarget = {
+  activationSequence: number;
   projectDir: string;
   canvasRoot: string;
   canvasName: string;
@@ -142,6 +143,19 @@ async function openCanvas(
 }
 
 async function resolveInitialTarget(): Promise<CanvasTarget> {
+  const routeParams = new URLSearchParams(window.location.search);
+  const routeCanvasFile = routeParams.get("canvasFile")?.trim() ?? "";
+  const routeCanvasName = routeParams.get("canvasName")?.trim() ?? "";
+  const routeProjectDir = routeParams.get("projectDir")?.trim() ?? "";
+  if (routeCanvasFile && routeCanvasName && routeProjectDir) {
+    const routed = await requestJSON<{ target: CanvasTarget | null }>(
+      `/api/target?${new URLSearchParams({ canvasFile: routeCanvasFile })}`
+    );
+    if (routed.target) {
+      return routed.target;
+    }
+    return openCanvas(routeProjectDir, routeCanvasName);
+  }
   const active = await requestJSON<{ target: CanvasTarget | null }>(
     "/api/target"
   );
@@ -353,8 +367,21 @@ export default function App(): React.JSX.Element {
   }, [initialize]);
 
   useEffect(() => {
+    if (loadState.status !== "ready") {
+      return;
+    }
+    document.title = `${loadState.target.canvasName}.canvas`;
+  }, [loadState]);
+
+  useEffect(() => {
+    if (loadState.status !== "ready") {
+      return;
+    }
+    const targetUrl = `/api/target?${new URLSearchParams({
+      canvasFile: loadState.target.canvasFile
+    })}`;
     const timer = window.setInterval(() => {
-      void requestJSON<{ target: CanvasTarget | null }>("/api/target")
+      void requestJSON<{ target: CanvasTarget | null }>(targetUrl)
         .then(({ target }) => {
           if (target && target.revision !== activeRevisionRef.current) {
             return showTarget(target);
@@ -364,7 +391,7 @@ export default function App(): React.JSX.Element {
         .catch(() => undefined);
     }, 1000);
     return () => window.clearInterval(timer);
-  }, [showTarget]);
+  }, [loadState, showTarget]);
 
   if (loadState.status === "loading") {
     return <main className="poc-status">{copy.loading}</main>;

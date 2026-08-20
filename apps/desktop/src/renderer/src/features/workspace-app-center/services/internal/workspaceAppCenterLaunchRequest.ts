@@ -25,6 +25,8 @@ export {
 };
 
 const workspaceAppInlineBrowserNodeIdPrefix = "workspace-app:inline:";
+const workspaceAppAgentInlineBrowserNodeIdPrefix =
+  "workspace-app:agent-inline:";
 const tuttiCanvasAppId = "tutti-canvas";
 
 export async function resolveWorkspaceAppCenterLaunchRequest(input: {
@@ -196,6 +198,15 @@ export function workspaceAppInlineBrowserNodeId(appId: string): string {
   return `${workspaceAppInlineBrowserNodeIdPrefix}${encodeURIComponent(appId)}`;
 }
 
+export function workspaceAppAgentInlineBrowserNodeId(input: {
+  appId: string;
+  surfaceId: string;
+}): string {
+  return `${workspaceAppAgentInlineBrowserNodeIdPrefix}${encodeURIComponent(
+    input.surfaceId
+  )}:${encodeURIComponent(input.appId)}`;
+}
+
 export function readWorkspaceAppIdFromDockEntryId(
   value: string | null | undefined
 ): string | null {
@@ -219,6 +230,7 @@ export function readWorkspaceAppIdFromNodeId(
 ): string | null {
   const webviewPrefix = `${workspaceAppWebviewTypeID}:`;
   return (
+    readWorkspaceAppIdFromAgentInlineBrowserNodeId(value) ??
     (value?.startsWith(workspaceAppInlineBrowserNodeIdPrefix)
       ? decodeURIComponent(
           value.slice(workspaceAppInlineBrowserNodeIdPrefix.length)
@@ -229,6 +241,19 @@ export function readWorkspaceAppIdFromNodeId(
       ? readWorkspaceAppIdFromInstanceId(value.slice(webviewPrefix.length))
       : null)
   );
+}
+
+function readWorkspaceAppIdFromAgentInlineBrowserNodeId(
+  value: string | null | undefined
+): string | null {
+  if (!value?.startsWith(workspaceAppAgentInlineBrowserNodeIdPrefix)) {
+    return null;
+  }
+  const separatorIndex = value.lastIndexOf(":");
+  if (separatorIndex < workspaceAppAgentInlineBrowserNodeIdPrefix.length) {
+    return null;
+  }
+  return decodeURIComponent(value.slice(separatorIndex + 1));
 }
 
 export function reportWorkspaceAppOpenedFromDockEntry(input: {

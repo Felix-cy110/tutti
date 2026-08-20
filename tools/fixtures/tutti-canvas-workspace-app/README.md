@@ -16,7 +16,9 @@ The prototype intentionally hard-codes the local canvas checkout at
 4. The standalone Agent page opens the canvas in its dedicated right-side
    **Canvas** panel. An Agent embedded in the workspace opens a direct,
    right-aligned canvas WebView instead of an App Center tab. Other Workspace
-   Apps keep their existing behavior.
+   Apps keep their existing behavior. The standalone Canvas route updates that
+   Agent window's own panel state directly so another workbench presenter cannot
+   consume the request.
 
 The installed app contributes these Agent-visible commands through the normal
 Workspace App CLI capability guide:
@@ -28,8 +30,13 @@ tutti canvas selection --project-dir <absolute-project-path> --canvas-name <name
 tutti canvas insert-image --project-dir <absolute-project-path> --canvas-name <name> --image-path <absolute-image-path>
 ```
 
-`canvas open` changes the canvas shown by an already-open app. The UI and CLI
-both read and write the same `<project>/.tutti-canvases/<name>.canvas` file.
+`canvas open` opens or activates a right-panel tab identified by the exact
+`canvasFile`. The tab displays `<name>.canvas`; opening another file keeps the
+first tab mounted instead of replacing it. The UI and CLI both read and write
+the same `<project>/.tutti-canvases/<name>.canvas` file. Closing a tab only
+closes its UI and never deletes the file. The Agent must stay behind this CLI
+boundary: it does not inspect the Canvas checkout or rewrite `.canvas` ZIP
+contents when a command fails.
 
 This is macOS-local feasibility code. A production package must remove the
 absolute checkout path, build the canvas frontend into the app package, and own

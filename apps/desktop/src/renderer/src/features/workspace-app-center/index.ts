@@ -20,3 +20,4 @@ export {
 export { WorkspaceAppCenterIntegration } from "./ui/WorkspaceAppCenterIntegration";
 export { WorkspaceAppCenterPane } from "./ui/WorkspaceAppCenterPane";
 export { useWorkspaceAppCenterService } from "./ui/useWorkspaceAppCenterService";
+export { WorkspaceAppCenterDirectAppBody } from "./services/internal/workspaceAppCenterInlineAppBody";
